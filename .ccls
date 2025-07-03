@@ -1,0 +1,3 @@
+gcc
+%c -I./external/libxml2/include/libxml2
+-std=c-11
