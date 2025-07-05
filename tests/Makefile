@@ -1,5 +1,5 @@
-EXTERNAL_DIR ?= $(realpath ./)/external
-TARGET_DIR ?= $(realpath ./)/bin
+EXTERNAL_DIR ?= $(realpath ../)/external
+TARGET_DIR ?= $(realpath ../)/bin
 SRC_DIR = ./src
 
 LIBRARIES = \
@@ -23,7 +23,7 @@ SRC = $(wildcard $(SRC_DIR)/*.c)
 OBJ_DIR = build
 OBJS = $(patsubst $(SRC_DIR)/%.c, $(OBJ_DIR)/%.o, $(SRC))
 
-TARGET = $(TARGET_DIR)/main
+TARGET = $(TARGET_DIR)/tests
 
 #
 #
@@ -39,19 +39,7 @@ $(OBJ_DIR)/%.o: $(SRC_DIR)/%.c
 	mkdir -p $(@D)
 	$(CC) $(CFLAGS) $(INCLUDES) -c $< -o $@
 
-
-run-tests: tests
-	./bin/tests
-
-tests:
-	$(MAKE) clean
-	$(MAKE) clean -C ./tests
-	$(MAKE) -C ./tests
-
-
-
 clean:
-	$(MAKE) clean -C ./tests
 	rm -rf $(OBJ_DIR) $(TARGET)
 
-.PHONY: all clean tests run-tests
+.PHONY: all clean
