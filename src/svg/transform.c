@@ -1,4 +1,4 @@
-#include "./svg_transform.h"
+#include "./transform.h"
 #include <string.h>
 #include <stdio.h>
 
@@ -44,3 +44,11 @@ void svg_transform_perform_operation(Transform *t, const char *svg) {
     }
 }
 
+
+inline Point2D svg_transform_apply(Transform const *t, Point2D a) {
+    double const * const m = transform_getc_matrix(t);
+    return (Point2D) {
+        .x=m[0]*a.x + m[1]*a.y + m[2],
+        .y=m[3]*a.x + m[4]*a.y + m[5],
+    };
+};

@@ -18,7 +18,8 @@ CC = gcc
 
 CFLAGS = -Wall -Wextra -fPIC -g
 
-SRC = $(wildcard $(SRC_DIR)/*.c)
+SRC = $(wildcard $(SRC_DIR)/*.c) \
+	$(wildcard $(SRC_DIR)/svg/*.c)
 
 OBJ_DIR = build
 OBJS = $(patsubst $(SRC_DIR)/%.c, $(OBJ_DIR)/%.o, $(SRC))

@@ -2,10 +2,12 @@
 #define APP_SVG_TRANSFORM_H
 
 
-#include "./transform.h"
+#include "../transform.h"
+#include "../geometry.h"
 
 
 void svg_transform_perform_operation(Transform *t, char const *svg);
+Point2D svg_transform_apply(Transform const *t, Point2D a);
 
 
 #endif

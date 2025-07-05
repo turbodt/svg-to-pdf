@@ -9,7 +9,7 @@
 #include <libxml/xpath.h>
 #include <libxml/xpathInternals.h>
 #include <math.h>
-#include "./svg_transform.h"
+#include "./svg/main.h"
 
 
 Transform * parse_transform(Transform const *curr, const char *str) {
