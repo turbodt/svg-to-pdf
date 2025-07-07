@@ -46,10 +46,12 @@ run-tests: tests
 
 tests:
 	$(MAKE) clean
+	$(MAKE) all
 	$(MAKE) clean -C ./tests
-	$(MAKE) -C ./tests
-
-
+	$(MAKE) -C ./tests \
+		MAIN_DIR=$(realpath ./) \
+		EXTERNAL_INCLUDES="$(INCLUDES)" \
+		EXTERNAL_LIBRARIES="$(LIBRARIES)"
 
 clean:
 	$(MAKE) clean -C ./tests

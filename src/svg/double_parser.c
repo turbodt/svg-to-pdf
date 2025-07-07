@@ -1,4 +1,5 @@
 #include "./double_parser.h"
+#include <ctype.h>
 
 
 static char const *skip_separators(char const *s);
