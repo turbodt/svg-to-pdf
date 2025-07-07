@@ -34,6 +34,7 @@ int main(int argc, char * argv[]) {
 
     TestSuite const * ts[] = {
         test_suite_svg_get_1(),
+        test_suite_svg_get_2(),
         NULL
     };
 
