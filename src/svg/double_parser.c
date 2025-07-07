@@ -23,13 +23,13 @@ char const *svg_double_parse(char const *start, double *out) {
 
     parse_exponent(&p);
 
-    size_t len = p - start;
+    unsigned int len = p - start;
     if (len >= 64) {
         return start;
     }
 
     char buf[64];
-    for (size_t i = 0; i < len; ++i) {
+    for (unsigned int i = 0; i < len; ++i) {
         buf[i] = start[i];
     }
     buf[len] = '\0';
