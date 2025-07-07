@@ -34,6 +34,7 @@ SVGPath *svg_path_make_from_string(char const *p) {
 
     path->capacity = 0;
     path->count = 0;
+    path->commands = NULL;
 
     Point2D point_origin = {0};
     Point2D point_prev = {0};
@@ -59,9 +60,6 @@ SVGPath *svg_path_make_from_string(char const *p) {
                 last_cmd_char = *p;
                 p++;
             break;
-            default:
-                goto SVG_PATH_MAKE_PARSING_FAILED;
-            break;
         }
         SVGPathCommand command = parse_command(
             last_cmd_char,
@@ -73,12 +71,15 @@ SVGPath *svg_path_make_from_string(char const *p) {
         switch(command.type) {
             case SVG_PATH_CMD_UNKNOWN:
                 goto SVG_PATH_MAKE_PARSING_FAILED;
-            case SVG_PATH_CMD_CBEZIER:
             case SVG_PATH_CMD_QBEZIER:
-                point_ctrl_prev = command.points[2];
-            case SVG_PATH_CMD_LINE:
-                point_prev = command.points[1];
+                point_ctrl_prev = command.ctrl[1];
+            break;
+            case SVG_PATH_CMD_CBEZIER:
+                point_ctrl_prev = command.ctrl[0];
+            break;
+            default:break;
         };
+        point_prev = command.end;
         if (svg_path_add_command(path, &command)) {
             goto SVG_PATH_MAKE_PARSING_FAILED;
         };
@@ -119,13 +120,19 @@ SVGPathCommand const *svg_path_get_command(
 void svg_path_apply_transform(SVGPath *path, double matrix[6]) {
     for (int i = 0; i < path->count; ++i) {
         SVGPathCommand *c = &path->commands[i];
+        Point2D * points[4] = {
+            &c->start,
+            &c->end,
+            &c->ctrl[0],
+            &c->ctrl[1]
+        };
         unsigned int n = c->type == SVG_PATH_CMD_LINE ? 2
             : c->type == SVG_PATH_CMD_QBEZIER ? 3
             : c->type == SVG_PATH_CMD_CBEZIER ? 4
             : 0;
 
         for (unsigned int j = 0; j < n; ++j) {
-            Point2D *point = &c->points[j];
+            Point2D *point = points[j];
             point->x  = matrix[0] * point->x + matrix[1] * point->y + matrix[2];
             point->y  = matrix[3] * point->x + matrix[4] * point->y + matrix[5];
         }
@@ -139,6 +146,7 @@ int parse_origin(char const **p, Point2D *origin) {
     if (new_ptr == *p) {
         return 1;
     }
+    *p = new_ptr;
     origin->x = coords[0];
     origin->y = coords[1];
     return 0;
@@ -163,18 +171,18 @@ SVGPathCommand parse_command(
 
     double coords[6];
 
-    command.points[0] = p_prev;
+    command.start = p_prev;
     switch (cmd_char) {
         case 'L': {
             char const *new_ptr = svg_double_n_parse(*p, 2, coords);
             if (new_ptr == *p) {
                 goto SVG_PATH_PARSING_FAILED;
             }
-            // end point
-            command.points[1].x = coords[0];
-            command.points[1].y = coords[1];
+            *p = new_ptr;
+            command.end.x = coords[0];
+            command.end.y = coords[1];
             if (relative) {
-                point_add(&command.points[1], p_prev);
+                point_add(&command.end, p_prev);
             }
             command.type = SVG_PATH_CMD_LINE;
         } break;
@@ -183,11 +191,11 @@ SVGPathCommand parse_command(
             if (new_ptr == *p) {
                 goto SVG_PATH_PARSING_FAILED;
             }
-            // end point
-            command.points[1].x = coords[0];
-            command.points[1].y = p_prev.y;
+            *p = new_ptr;
+            command.end.x = coords[0];
+            command.end.y = p_prev.y;
             if (relative) {
-                command.points[1].x += p_prev.x;
+                command.end.x += p_prev.x;
             }
             command.type = SVG_PATH_CMD_LINE;
         } break;
@@ -196,18 +204,17 @@ SVGPathCommand parse_command(
             if (new_ptr == *p) {
                 goto SVG_PATH_PARSING_FAILED;
             }
-            // end point
-            command.points[1].y = coords[0];
-            command.points[1].x = p_prev.x;
+            *p = new_ptr;
+            command.end.y = coords[0];
+            command.end.x = p_prev.x;
             if (relative) {
-                command.points[1].y += p_prev.y;
+                command.end.y += p_prev.y;
             }
             command.type = SVG_PATH_CMD_LINE;
         } break;
         case 'Z': {
-            command.points[0] = p_prev;
-            // end point
-            command.points[1] = origin;
+            command.start = p_prev;
+            command.end = origin;
             command.type = SVG_PATH_CMD_LINE;
         } break;
         case 'Q': {
@@ -215,15 +222,30 @@ SVGPathCommand parse_command(
             if (new_ptr == *p) {
                 goto SVG_PATH_PARSING_FAILED;
             }
-            // end point
-            command.points[1].x = coords[2];
-            command.points[1].y = coords[3];
-            // last control point
-            command.points[2].x = coords[0];
-            command.points[2].y = coords[1];
+            *p = new_ptr;
+            command.end.x = coords[2];
+            command.end.y = coords[3];
+            command.ctrl[0].x = coords[0];
+            command.ctrl[0].y = coords[1];
             if (relative) {
-                point_add(&command.points[1], p_prev);
-                point_add(&command.points[2], p_prev);
+                point_add(&command.end, p_prev);
+                point_add(&command.ctrl[0], p_prev);
+            }
+            command.type = SVG_PATH_CMD_QBEZIER;
+        } break;
+        case 'T': {
+            char const *new_ptr = svg_double_n_parse(*p, 2, coords);
+            if (new_ptr == *p) {
+                goto SVG_PATH_PARSING_FAILED;
+            }
+            *p = new_ptr;
+            command.end.x = coords[0];
+            command.end.y = coords[1];
+            command.ctrl[0].x = 2*command.start.x - cp_prev.x;
+            command.ctrl[0].y = 2*command.start.y - cp_prev.y;
+            if (relative) {
+                point_add(&command.end, p_prev);
+                point_add(&command.ctrl[1], p_prev);
             }
             command.type = SVG_PATH_CMD_QBEZIER;
         } break;
@@ -232,19 +254,35 @@ SVGPathCommand parse_command(
             if (new_ptr == *p) {
                 goto SVG_PATH_PARSING_FAILED;
             }
-            // end point
-            command.points[1].x = coords[4];
-            command.points[1].y = coords[5];
-            // last control point
-            command.points[2].x = coords[2];
-            command.points[2].y = coords[3];
-            // first control point
-            command.points[3].x = coords[0];
-            command.points[3].y = coords[1];
+            *p = new_ptr;
+            command.end.x = coords[4];
+            command.end.y = coords[5];
+            command.ctrl[1].x = coords[2];
+            command.ctrl[1].y = coords[3];
+            command.ctrl[0].x = coords[0];
+            command.ctrl[0].y = coords[1];
             if (relative) {
-                point_add(&command.points[1], p_prev);
-                point_add(&command.points[2], p_prev);
-                point_add(&command.points[3], p_prev);
+                point_add(&command.end, p_prev);
+                point_add(&command.ctrl[1], p_prev);
+                point_add(&command.ctrl[0], p_prev);
+            }
+            command.type = SVG_PATH_CMD_CBEZIER;
+        } break;
+        case 'S': {
+            char const *new_ptr = svg_double_n_parse(*p, 4, coords);
+            if (new_ptr == *p) {
+                goto SVG_PATH_PARSING_FAILED;
+            }
+            command.end.x = coords[2];
+            command.end.y = coords[3];
+            command.ctrl[1].x = coords[0];
+            command.ctrl[1].y = coords[1];
+            command.ctrl[0].x = 2*command.start.x - cp_prev.x;
+            command.ctrl[0].y = 2*command.start.y - cp_prev.y;
+            if (relative) {
+                point_add(&command.end, p_prev);
+                point_add(&command.ctrl[1], p_prev);
+                point_add(&command.ctrl[0], p_prev);
             }
             command.type = SVG_PATH_CMD_CBEZIER;
         } break;

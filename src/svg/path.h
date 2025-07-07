@@ -15,7 +15,9 @@ typedef enum {
 
 typedef struct {
     SVGPathCommandType type;
-    Point2D points[4];
+    Point2D start;
+    Point2D end;
+    Point2D ctrl[2];
 } SVGPathCommand;
 
 
