@@ -19,10 +19,10 @@ void geo_transform_compose(Transform *dst_left, Transform const *src_right);
 void geo_transform_compose_list(Transform *dst_left, double const list[6]);
 void geo_transform_translate(Transform *t, Size2D v);
 void geo_transform_translate_val(Transform *t, double tx, double ty);
-void geo_transform_rotate(Transform *t, double angle_deg, Point2D center);
+void geo_transform_rotate(Transform *t, double angle_rad, Point2D center);
 void geo_transform_rotate_val(
     Transform *t,
-    double angle_deg,
+    double angle_rad,
     double cx,
     double cy
 );

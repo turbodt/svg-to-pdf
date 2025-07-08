@@ -4,9 +4,6 @@
 #include <stdlib.h>
 
 
-#define DEG_TO_RAD(angle) ((angle) * M_PI / 180.0)
-
-
 struct Transform {
     double matrix[6];
 };
@@ -80,13 +77,12 @@ void geo_transform_translate_val(Transform *t, double tx, double ty) {
 
 void geo_transform_rotate_val(
     Transform *t,
-    double angle_deg,
+    double angle_rad,
     double cx,
     double cy
 ) {
-    double rad = DEG_TO_RAD(angle_deg);
-    double cos_a = cos(rad);
-    double sin_a = sin(rad);
+    double cos_a = cos(angle_rad);
+    double sin_a = sin(angle_rad);
     double comp_cos_a = 1.0 - cos_a;
 
     Transform rotate = {.matrix={
@@ -102,6 +98,6 @@ inline void geo_transform_translate(Transform *t, Size2D v) {
 };
 
 
-inline void geo_transform_rotate(Transform *t, double angle_deg, Point2D c) {
-    geo_transform_rotate_val(t, angle_deg, c.x, c.y);
+inline void geo_transform_rotate(Transform *t, double angle_rad, Point2D c) {
+    geo_transform_rotate_val(t, angle_rad, c.x, c.y);
 };
