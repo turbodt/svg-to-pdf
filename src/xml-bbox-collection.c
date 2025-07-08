@@ -30,7 +30,10 @@ XmlBboxCollection * xml_bbox_collection_make(void) {
 
 
 void xml_bbox_collection_destroy(XmlBboxCollection *impl) {
-    impl->items = NULL;
+    if (impl->items) {
+        free(impl->items);
+        impl->items = NULL;
+    }
     impl->count = 0;
     impl->capacity = 0;
     free(impl);
