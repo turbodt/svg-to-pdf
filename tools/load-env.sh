@@ -31,6 +31,8 @@ main() {
     export LD_LIBRARY_PATH=""
 
     add_dir "${MODULE_DIR}/external/libxml2/"
+    add_dir "${MODULE_DIR}/src/geometry/"
+    add_dir "${MODULE_DIR}/src/svg/"
 }
 
 

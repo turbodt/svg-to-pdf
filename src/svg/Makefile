@@ -1,15 +1,13 @@
-LIB_NAME = test-svg
+LIB_NAME = custom-svg
 LIB_DIR = ./lib
-MAIN_DIR ?= $(realpath ../../..)
+MAIN_DIR ?= $(realpath ../..)
 EXTERNAL_DIR ?= $(realpath $(MAIN_DIR)/external)
-SRC_DIR = ./
+SRC_DIR = ./src
 
 INCLUDES = \
 	$(EXTERNAL_INCLUDES) \
-	-I$(MAIN_DIR)/src/geometry/include \
-	-I$(MAIN_DIR)/src/svg/include \
-	-I../shared/include \
 	-I${SRC_DIR} \
+	-I../geometry/include \
 
 #
 #

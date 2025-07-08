@@ -4,7 +4,6 @@
 
 #include "./config.h"
 #include "./assertions_basic.h"
-#include "../../../src/svg/main.h"
 #include <math.h>
 
 

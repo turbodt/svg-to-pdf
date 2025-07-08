@@ -9,11 +9,11 @@
 #include <libxml/xpath.h>
 #include <libxml/xpathInternals.h>
 #include <math.h>
-#include "./svg/main.h"
+#include <custom-svg.h>
 
 
 Transform * parse_transform(Transform const *curr, const char *str) {
-    Transform *t = transform_copy(curr);
+    Transform *t = geo_transform_copy(curr);
     if (!t) {
         return NULL;
     }
@@ -32,9 +32,9 @@ void extract_paths(xmlNode *node, Transform * accumulated) {
     static xmlChar const *tag_d = (xmlChar const *)"d";
 
     if (!accumulated) {
-        accumulated = transform_make();
+        accumulated = geo_transform_make();
         extract_paths(node, accumulated);
-        transform_destroy(accumulated);
+        geo_transform_destroy(accumulated);
         return;
     }
 
@@ -57,7 +57,7 @@ void extract_paths(xmlNode *node, Transform * accumulated) {
         if (xmlStrEqual(cur->name, tag_path)) {
             xmlChar *d = xmlGetProp(cur, tag_d);
             if (d) {
-                double const *m = transform_getc_matrix(current);
+                double const *m = geo_transform_getc_matrix(current);
                 printf("Path: %s\n", d);
                 printf(
                     "Transformed by:\n"
@@ -74,7 +74,7 @@ void extract_paths(xmlNode *node, Transform * accumulated) {
         extract_paths(cur->children, current);
 
         if (transform_attr) {
-            transform_destroy(current);
+            geo_transform_destroy(current);
             current = NULL;
         }
     }

@@ -2,8 +2,7 @@
 #define APP_SVG_TRANSFORM_H
 
 
-#include "../transform.h"
-#include "../geometry.h"
+#include <geometry/transform.h>
 
 
 void svg_transform_perform_operation(Transform *t, char const *svg);

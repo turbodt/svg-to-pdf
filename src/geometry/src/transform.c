@@ -1,17 +1,18 @@
-#include "./transform.h"
-#include "./math.h"
+#include "../include/geometry/transform.h"
+#include <math.h>
 #include <string.h>
 #include <stdlib.h>
 
 
 #define DEG_TO_RAD(angle) ((angle) * M_PI / 180.0)
 
+
 struct Transform {
     double matrix[6];
 };
 
 
-Transform *transform_make(void) {
+Transform *geo_transform_make(void) {
     Transform *t = (Transform *)malloc(sizeof(Transform));
     if (!t) {
         return NULL;
@@ -21,13 +22,13 @@ Transform *transform_make(void) {
 }
 
 
-void transform_destroy(Transform *t) {
+void geo_transform_destroy(Transform *t) {
     free(t);
 }
 
 
-Transform *transform_copy(Transform const *t) {
-    Transform *result = transform_make();
+Transform *geo_transform_copy(Transform const *t) {
+    Transform *result = geo_transform_make();
     if (!result) {
         return NULL;
     }
@@ -36,12 +37,20 @@ Transform *transform_copy(Transform const *t) {
 };
 
 
-inline double const * transform_getc_matrix(Transform const *t) {
+inline double const * geo_transform_getc_matrix(Transform const *t) {
     return t->matrix;
 };
 
 
-void transform_compose_list(Transform *dst, double const list[6]) {
+inline Point2D geo_transform_apply_point(Transform const *t, Point2D p) {
+    return (Point2D) {
+        .x = t->matrix[0] * p.x + t->matrix[1] *p.y + t->matrix[2],
+        .y = t->matrix[3] * p.x + t->matrix[4] *p.y + t->matrix[5],
+    };
+}
+
+
+void geo_transform_compose_list(Transform *dst, double const list[6]) {
     Transform result = {.matrix={0}};
     for (int i = 0; i < 2; ++i) {
         for (int j = 0; j < 3; ++j) {
@@ -58,18 +67,18 @@ void transform_compose_list(Transform *dst, double const list[6]) {
 }
 
 
-void transform_compose(Transform *dst, Transform const *src) {
-    transform_compose_list(dst, src->matrix);
+void geo_transform_compose(Transform *dst, Transform const *src) {
+    geo_transform_compose_list(dst, src->matrix);
 }
 
 
-void transform_translate(Transform *t, double tx, double ty) {
+void geo_transform_translate_val(Transform *t, double tx, double ty) {
     Transform tr = {.matrix={1, 0, tx, 0, 1, ty}};
-    transform_compose(t, &tr);
+    geo_transform_compose(t, &tr);
 }
 
 
-void transform_rotate(
+void geo_transform_rotate_val(
     Transform *t,
     double angle_deg,
     double cx,
@@ -84,5 +93,15 @@ void transform_rotate(
         cos_a, -sin_a, cx * comp_cos_a + cy * sin_a,
         sin_a,  cos_a, cy * comp_cos_a - cx * sin_a
     }};
-    transform_compose(t, &rotate);
+    geo_transform_compose(t, &rotate);
 }
+
+
+inline void geo_transform_translate(Transform *t, Size2D v) {
+    geo_transform_translate_val(t, v.width, v.height);
+};
+
+
+inline void geo_transform_rotate(Transform *t, double angle_deg, Point2D c) {
+    geo_transform_rotate_val(t, angle_deg, c.x, c.y);
+};
