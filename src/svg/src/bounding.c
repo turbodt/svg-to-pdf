@@ -28,6 +28,29 @@ static double max4(double const [4]);
 static int almost_eq_rel(double a, double b);
 
 
+Box2D svg_path_get_bbox(SVGPath const *path) {
+    Box2D bbox = {0};
+    if (!path) {
+        return bbox;
+    }
+    unsigned int const cmd_count = svg_path_command_count(path);
+    if (cmd_count == 0) {
+        return bbox;
+    }
+    SVGPathCommand const *command;
+    command = svg_path_get_command(path, 0);
+    bbox = svg_path_command_get_bbox(command);
+
+    for (unsigned int i = 1; i < cmd_count; i++) {
+        command = svg_path_get_command(path, i);
+        Box2D cmd_bbox = svg_path_command_get_bbox(command);
+        bbox = geo_boxes_compose(bbox, cmd_bbox);
+    }
+
+    return bbox;
+};
+
+
 Box2D svg_path_command_get_bbox(SVGPathCommand const *command) {
     switch (command->type) {
         case SVG_PATH_CMD_LINE:
