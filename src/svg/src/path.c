@@ -12,7 +12,12 @@ struct SVGPath {
 };
 
 
-static int parse_origin(char const **p, Point2D *origin);
+static int parse_origin(
+    char cmd_char,
+    Point2D p_prev,
+    char const **p,
+    Point2D *origin
+);
 static SVGPathCommand parse_command(
     char cmd_char,
     Point2D origin,
@@ -45,7 +50,9 @@ SVGPath *svg_path_make_from_string(char const *p) {
             case 'M':case 'm': {
                 last_cmd_char = *p;
                 p++;
-                if (parse_origin(&p, &point_origin)) {
+                if (
+                    parse_origin(last_cmd_char, point_prev, &p, &point_origin)
+                ) {
                     goto SVG_PATH_MAKE_PARSING_FAILED;
                 };
                 point_prev = point_origin;
@@ -138,8 +145,14 @@ void svg_path_apply_transform(SVGPath *path, Transform const *t) {
 }
 
 
-int parse_origin(char const **p, Point2D *origin) {
+int parse_origin(
+    char cmd_char,
+    Point2D p_prev,
+    char const **p,
+    Point2D *origin
+) {
     double coords[2];
+    int is_relative = cmd_char >= 'a' && cmd_char <= 'z';
     char const *new_ptr = svg_double_n_parse(*p, 2, coords);
     if (new_ptr == *p) {
         return 1;
@@ -147,6 +160,9 @@ int parse_origin(char const **p, Point2D *origin) {
     *p = new_ptr;
     origin->x = coords[0];
     origin->y = coords[1];
+    if (is_relative) {
+        point_add(origin, p_prev);
+    }
     return 0;
 };
 
