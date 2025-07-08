@@ -29,9 +29,7 @@ static int test_003(void) {
     SVGPathCommand const *command = svg_path_get_command(path, 0);
     ASSERT_NOT_NULL(command);
 
-    Point2D start = {0,0};
-    Point2D end = {1,1};
-    ASSERT_PATH_LINE_IS(*command, start, end);
+    ASSERT_PATH_IS_LINE(*command, 0, 0, 1, 1);
 
     svg_path_destroy(path);
     return 0;
@@ -39,7 +37,6 @@ static int test_003(void) {
 
 
 static int test_004(void) {
-    Point2D start, end;
     SVGPathCommand const *command = NULL;
     SVGPath * path = svg_path_make_from_string("M 0 0 L 1 1 1 0 Z");
     ASSERT_NOT_NULL(path, "Expected path to be parsed");
@@ -47,21 +44,15 @@ static int test_004(void) {
 
     command = svg_path_get_command(path, 0);
     ASSERT_NOT_NULL(command, "Expected first command to be not NULL");
-    start = (Point2D){0,0};
-    end = (Point2D){1,1};
-    ASSERT_PATH_LINE_IS(*command, start, end, "Unexpected first command");
+    ASSERT_PATH_IS_LINE(*command, 0,0, 1,1 , "Unexpected first command");
 
     command = svg_path_get_command(path, 1);
     ASSERT_NOT_NULL(command, "Expected second command to be not NULL");
-    start = (Point2D){1,1};
-    end = (Point2D){1,0};
-    ASSERT_PATH_LINE_IS(*command, start, end, "Unexpected second command");
+    ASSERT_PATH_IS_LINE(*command, 1,1, 1,0, "Unexpected second command");
 
     command = svg_path_get_command(path, 2);
     ASSERT_NOT_NULL(command, "Expected third command to be not NULL");
-    start = (Point2D){1,0};
-    end = (Point2D){0,0};
-    ASSERT_PATH_LINE_IS(*command, start, end, "Unexpected third command");
+    ASSERT_PATH_IS_LINE(*command, 1,0, 0,0, "Unexpected third command");
 
     svg_path_destroy(path);
     return 0;
