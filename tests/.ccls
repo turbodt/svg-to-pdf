@@ -1,5 +1,6 @@
 gcc
-%c -I../src
+%c -I../src/geometry/include
+%c -I../src/svg/include
 %c -I./src/shared/include
 %c -I./src/svg/include
 -std=c11

@@ -2,7 +2,7 @@
 #define APP_SRC_SVG_PATH_H
 
 
-#include "../geometry.h"
+#include <geometry/transform.h>
 
 
 typedef enum {
@@ -28,7 +28,7 @@ SVGPath *svg_path_make_from_string(char const *s);
 void svg_path_destroy(SVGPath *path);
 int svg_path_command_count(SVGPath const *path);
 SVGPathCommand const *svg_path_get_command(SVGPath const *path, unsigned int index);
-void svg_path_apply_transform(SVGPath *path, double matrix[6]);
+void svg_path_apply_transform(SVGPath *path, Transform const *t);
 
 
 #endif

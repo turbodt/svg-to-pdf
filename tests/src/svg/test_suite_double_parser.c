@@ -1,6 +1,6 @@
 #include "./shared.h"
 #include <math.h>
-#include "../../../src/svg/double_parser.h"
+#include <custom-svg.h>
 
 
 static int test_svg_parse(

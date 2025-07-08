@@ -1,6 +1,6 @@
 #include "./shared.h"
 #include <math.h>
-#include "../../../src/svg/main.h"
+#include <custom-svg.h>
 
 
 static int test_001(void) {

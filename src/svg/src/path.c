@@ -1,7 +1,6 @@
 #include "./path.h"
 #include "./double_parser.h"
-#include "./transform.h"
-#include "../geometry.h"
+#include <geometry/transform.h>
 #include <stdlib.h>
 #include <string.h>
 
@@ -117,8 +116,8 @@ SVGPathCommand const *svg_path_get_command(
 }
 
 
-void svg_path_apply_transform(SVGPath *path, double matrix[6]) {
-    for (int i = 0; i < path->count; ++i) {
+void svg_path_apply_transform(SVGPath *path, Transform const *t) {
+    for (unsigned int i = 0; i < path->count; ++i) {
         SVGPathCommand *c = &path->commands[i];
         Point2D * points[4] = {
             &c->start,
@@ -133,8 +132,7 @@ void svg_path_apply_transform(SVGPath *path, double matrix[6]) {
 
         for (unsigned int j = 0; j < n; ++j) {
             Point2D *point = points[j];
-            point->x  = matrix[0] * point->x + matrix[1] * point->y + matrix[2];
-            point->y  = matrix[3] * point->x + matrix[4] * point->y + matrix[5];
+            *point = geo_transform_apply_point(t, *point);
         }
     }
 }
