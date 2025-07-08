@@ -13,4 +13,11 @@
     (command).end.x, (command).end.y \
 )
 
+#define LOG_BOX(box) LOG( \
+    "[tl:(%.2f, %.2f) size:(%.2f, %.2f) br:(%.2f, %.2f)]", \
+    box.tl.x, box.tl.y, \
+    box.size.width, box.size.height, \
+    box.tl.x + box.size.width, box.tl.y + box.size.height \
+)
+
 #endif

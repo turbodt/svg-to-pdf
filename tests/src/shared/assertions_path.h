@@ -7,11 +7,6 @@
 #include <math.h>
 
 
-#define ASSERT_FLOAT_EQ(a, b, ...) ASSERT(fabs((double)(a)-(double)(b)) < 1e-9, ## __VA_ARGS__)
-#define ASSERT_POINT_EQ(a, b, ...) do {\
-    ASSERT_FLOAT_EQ((a).x, (b).x, ## __VA_ARGS__); \
-    ASSERT_FLOAT_EQ((a).y, (b).y, ## __VA_ARGS__); \
-    } while(0)
 #define ASSERT_PATH_IS_UNKNOWN(command, ...) \
         ASSERT_EQ((command).type, SVG_PATH_CMD_UNKNOWN, ## __VA_ARGS__)
 #define ASSERT_PATH_IS_LINE(command, sx, sy, ex, ey, ...) do {\
