@@ -6,6 +6,7 @@
 
 
 TestSuite const * test_suite_svg_get_1(void);
+TestSuite const * test_suite_svg_get_2(void);
 
 
 #endif

@@ -1,4 +1,5 @@
 .ccls-cache/
+lib/
 bin/
 build/
 external/

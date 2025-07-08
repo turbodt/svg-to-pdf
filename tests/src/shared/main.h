@@ -4,6 +4,7 @@
 
 #include "./config.h"
 #include "./assertions_basic.h"
+#include "./assertions_path.h"
 
 
 #define CHANGE_ON_IMPL_MSG "This test is a placeholder until the feature" \

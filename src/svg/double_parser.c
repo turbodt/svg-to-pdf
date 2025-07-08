@@ -1,10 +1,10 @@
 #include "./double_parser.h"
 #include <ctype.h>
+#include <stdlib.h>
 
 
 static char const *skip_separators(char const *s);
 static int parse_exponent(char const **p);
-static int parse_number(char const **p);
 static int parse_decimal(char const **p);
 static int parse_unsigned_integer(char const **p);
 static void parse_sign(char const **p);
@@ -71,7 +71,7 @@ char const *svg_double_n_parse(
         }
     }
 
-    for (int i = 0; i < count; ++i) {
+    for (unsigned int i = 0; i < count; ++i) {
         out[i] = values[i];
     }
 
@@ -99,28 +99,7 @@ int parse_exponent(char const **p) {
 }
 
 
-int parse_number(char const **p) {
-    char const *q = *p;
-    parse_sign(&q);
-
-    int digits = parse_unsigned_integer(&q);
-    if (digits > 0) {
-        *p = q;
-        return 1;
-    }
-
-    if (parse_decimal(&q)) {
-        *p = q;
-        return 1;
-    }
-
-    return 0;
-}
-
-
 int parse_decimal(char const **p) {
-    char const *start = *p;
-
     char const *q = *p;
     int left = parse_unsigned_integer(&q);
     if (match_char(&q, '.')) {
@@ -154,7 +133,7 @@ int parse_unsigned_integer(char const **p) {
 
 
 void parse_sign(char const **p) {
-    match_char(p, '+') || match_char(p, '-');
+    match_char(p, '+') ? : match_char(p, '-');
 }
 
 
