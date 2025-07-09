@@ -1,21 +1,21 @@
-#include "./xml-bbox-collection.h"
+#include "./shared.h"
 #include <stdlib.h>
 
 
-struct XmlBboxCollection {
-    XmlBboxItem *items;
+struct BboxCollection {
+    BboxItem *items;
     unsigned int count;
     unsigned int capacity;
 };
-typedef XmlBboxCollection Impl;
+typedef BboxCollection Impl;
 
 
-static int ensure_capacity(Impl *impl, unsigned int target_capacity);
-static int cmp_area(XmlBboxItem const *, XmlBboxItem const *);
-static int cmp_dimensions(XmlBboxItem const *, XmlBboxItem const *);
+static int ensure_capacity(Impl *, unsigned int target_capacity);
+static int cmp_area(BboxItem const *, BboxItem const *);
+static int cmp_dimensions(BboxItem const *, BboxItem const *);
 
 
-XmlBboxCollection * xml_bbox_collection_make(void) {
+BboxCollection * bbox_collection_make(void) {
     Impl *impl = malloc(sizeof(Impl));
     if (!impl) {
         return NULL;
@@ -29,7 +29,7 @@ XmlBboxCollection * xml_bbox_collection_make(void) {
 }
 
 
-void xml_bbox_collection_destroy(XmlBboxCollection *impl) {
+void bbox_collection_destroy(BboxCollection *impl) {
     if (impl->items) {
         free(impl->items);
         impl->items = NULL;
@@ -40,15 +40,13 @@ void xml_bbox_collection_destroy(XmlBboxCollection *impl) {
 };
 
 
-inline unsigned int xml_bbox_collection_get_count(
-    XmlBboxCollection const *impl
-) {
+inline unsigned int bbox_collection_get_count(BboxCollection const *impl) {
     return impl->count;
 };
 
 
-inline XmlBboxItem const * xml_bbox_collection_getc(
-    XmlBboxCollection const *impl,
+inline BboxItem const * bbox_collection_getc(
+    BboxCollection const *impl,
     unsigned int index
 ) {
     if (index >= impl->count) {
@@ -58,19 +56,19 @@ inline XmlBboxItem const * xml_bbox_collection_getc(
 };
 
 
-int xml_bbox_collection_append(
-    XmlBboxCollection *impl,
-    xmlNode const *node,
+int bbox_collection_append(
+    BboxCollection *impl,
+    void const *id,
     Box2D bbox
 ) {
-    unsigned int current_count = xml_bbox_collection_get_count(impl);
+    unsigned int current_count = bbox_collection_get_count(impl);
     int err = ensure_capacity(impl, current_count + 1);
     if (err) {
         return err;
     }
 
-    impl->items[impl->count] = (XmlBboxItem){
-        .node = node,
+    impl->items[impl->count] = (BboxItem){
+        .id = id,
         .bbox = bbox
     };
     impl->count++;
@@ -79,26 +77,26 @@ int xml_bbox_collection_append(
 };
 
 
-void xml_bbox_collection_sort(
-    XmlBboxCollection *impl,
-    int(*cmp)(XmlBboxItem const *, XmlBboxItem const *)
+void bbox_collection_sort(
+    BboxCollection *impl,
+    int(*cmp)(BboxItem const *, BboxItem const *)
 ) {
     qsort(
         impl->items,
         impl->count,
-        sizeof(XmlBboxItem),
+        sizeof(BboxItem),
         (int(*)(void const *, void const*))cmp
     );
 };
 
 
-inline void xml_bbox_collection_sort_area(XmlBboxCollection *impl) {
-    xml_bbox_collection_sort(impl, cmp_area);
+inline void bbox_collection_sort_area(BboxCollection *impl) {
+    bbox_collection_sort(impl, cmp_area);
 };
 
 
-inline void xml_bbox_collection_sort_dim(XmlBboxCollection *impl) {
-    xml_bbox_collection_sort(impl, cmp_dimensions);
+inline void bbox_collection_sort_dim(BboxCollection *impl) {
+    bbox_collection_sort(impl, cmp_dimensions);
 };
 
 
@@ -117,11 +115,11 @@ int ensure_capacity(Impl *impl, unsigned int target_capacity) {
         new_capacity *= 2;
     }
 
-    XmlBboxItem *new_ptr;
+    BboxItem *new_ptr;
     if (impl->capacity == 0) {
-        new_ptr = malloc(sizeof(XmlBboxItem)*target_capacity);
+        new_ptr = malloc(sizeof(BboxItem)*target_capacity);
     } else {
-        new_ptr = realloc(impl->items, sizeof(XmlBboxItem)*target_capacity);
+        new_ptr = realloc(impl->items, sizeof(BboxItem)*target_capacity);
     }
     if (!new_ptr) {
         return 1;
@@ -133,13 +131,13 @@ int ensure_capacity(Impl *impl, unsigned int target_capacity) {
 };
 
 
-int cmp_area(XmlBboxItem const *a, XmlBboxItem const *b) {
+int cmp_area(BboxItem const *a, BboxItem const *b) {
     return (a->bbox.size.width * a->bbox.size.height)
         - (b->bbox.size.width * b->bbox.size.height);
 };
 
 
-int cmp_dimensions(XmlBboxItem const *a, XmlBboxItem const *b) {
+int cmp_dimensions(BboxItem const *a, BboxItem const *b) {
     if (a->bbox.size.width > b->bbox.size.width) {
         return -1;
     } else if (a->bbox.size.width < b->bbox.size.width) {

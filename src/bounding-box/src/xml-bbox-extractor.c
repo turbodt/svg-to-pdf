@@ -1,5 +1,4 @@
-#include "./xml-bbox-extractor.h"
-#include "./xml-bbox-collection.h"
+#include "./shared.h"
 #include <custom-svg.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -21,12 +20,6 @@ static xmlChar const *tag_x = (xmlChar const *)"x";
 static xmlChar const *tag_y = (xmlChar const *)"y";
 static xmlChar const *tag_defs = (xmlChar const *)"defs";
 
-
-static void xml_bbox_collection_make_from_node_rec(
-    xmlNode *node,
-    XmlBboxCollection *collection,
-    Transform *trans_acc
-);
 static Box2D xml_path_extract_bbox(xmlNode *node, Transform const *trans);
 static Box2D xml_rect_extract_bbox(xmlNode *node, Transform const *trans);
 static Transform * parse_transform(Transform const *curr, const char *str);
@@ -34,27 +27,14 @@ static double min4(double, double, double, double);
 static double max4(double, double, double, double);
 
 
-XmlBboxCollection * xml_bbox_collection_make_from_doc(xmlDoc *doc) {
-    xmlNode *root = xmlDocGetRootElement(doc);
-    XmlBboxCollection *collection = xml_bbox_collection_make();
-    if (!collection) {
-        goto CollectionMakeFailed;
-    }
-    xml_bbox_collection_make_from_node_rec(root, collection, NULL);
-    return collection;
-CollectionMakeFailed:
-    return NULL;
-};
-
-
-void xml_bbox_collection_make_from_node_rec(
+void xml_bbox_collection_make_from_node(
     xmlNode *node,
-    XmlBboxCollection *collection,
+    BboxCollection *collection,
     Transform * trans_acc
 ) {
     if (!trans_acc) {
         trans_acc = geo_transform_make();
-        xml_bbox_collection_make_from_node_rec(node, collection, trans_acc);
+        xml_bbox_collection_make_from_node(node, collection, trans_acc);
         geo_transform_destroy(trans_acc);
         return;
     }
@@ -86,10 +66,10 @@ void xml_bbox_collection_make_from_node_rec(
         }
 
         if (bbox.size.width != 0 && bbox.size.height != 0) {
-            xml_bbox_collection_append(collection, node_cur, bbox);
+            bbox_collection_append(collection, node_cur, bbox);
         }
 
-        xml_bbox_collection_make_from_node_rec(
+        xml_bbox_collection_make_from_node(
             node_cur->children,
             collection,
             trans_cur
