@@ -1,36 +1,19 @@
 #include <stdio.h>
-#include <stdlib.h>
-#include <string.h>
-#include <libxml/parser.h>
-#include <libxml/tree.h>
-#include <libxml/xpath.h>
-#include <libxml/xpathInternals.h>
-#include <math.h>
-#include <custom-svg.h>
-#include "./xml-bbox-collection.h"
+#include <errno.h>
+#include "./xml-bbox-extractor.h"
+#include <geometry.h>
 
 
-static xmlChar const *tag_transform = (xmlChar const *)"transform";
-static xmlChar const *tag_path = (xmlChar const *)"path";
-static xmlChar const *tag_d = (xmlChar const *)"d";
-static xmlChar const *tag_rect = (xmlChar const *)"rect";
-static xmlChar const *tag_width = (xmlChar const *)"width";
-static xmlChar const *tag_height = (xmlChar const *)"height";
-static xmlChar const *tag_x = (xmlChar const *)"x";
-static xmlChar const *tag_y = (xmlChar const *)"y";
-static xmlChar const *tag_defs = (xmlChar const *)"defs";
+#define DEFAULT_PAGE_WIDTH 2400
+#define DEFAULT_PAGE_HEIGHT 3400
+#define DEFAULT_PAGE_DIM_TOL 0.05
 
 
-static void xml_bbox_collection_make_from_doc(
-    xmlNode *node,
-    XmlBboxCollection *collection,
-    Transform *trans_acc
+static XmlBboxCollection *xml_bbox_collection_filter_by_dim(
+    XmlBboxCollection const *collection,
+    Size2D target_size,
+    float tolerance
 );
-static Box2D xml_path_extract_bbox(xmlNode *node, Transform const *trans);
-static Box2D xml_rect_extract_bbox(xmlNode *node, Transform const *trans);
-static Transform * parse_transform(Transform const *curr, const char *str);
-static double min4(double, double, double, double);
-static double max4(double, double, double, double);
 
 
 int main(int argc, char **argv) {
@@ -41,23 +24,31 @@ int main(int argc, char **argv) {
 
     xmlDoc *doc = xmlReadFile(argv[1], NULL, 0);
     if (!doc) {
-        fprintf(stderr, "Failed to parse %s\n", argv[1]);
+        perror("Failed at parsing file");
         goto DocumentParseFailed;
     }
 
-    XmlBboxCollection *collection = xml_bbox_collection_make();
+    XmlBboxCollection *collection = xml_bbox_collection_make_from_doc(doc);
     if (!collection) {
+        perror("Failed at extracting bounding box collection");
+        goto CollectionMakeFailed;
+    }
+    XmlBboxCollection *filtered_coll = xml_bbox_collection_filter_by_dim(
+        collection,
+        (Size2D){DEFAULT_PAGE_WIDTH,DEFAULT_PAGE_HEIGHT},
+        DEFAULT_PAGE_DIM_TOL
+    );
+    xml_bbox_collection_destroy(collection);
+    if (!filtered_coll) {
         goto CollectionMakeFailed;
     }
 
-    xmlNode *root = xmlDocGetRootElement(doc);
-    xml_bbox_collection_make_from_doc(root, collection, NULL);
-    xml_bbox_collection_sort_dim(collection);
+    xml_bbox_collection_sort_dim(filtered_coll);
 
-    unsigned int item_count = xml_bbox_collection_get_count(collection);
+    unsigned int item_count = xml_bbox_collection_get_count(filtered_coll);
     printf("Obtained %d XML elements\n", item_count);
     for (unsigned int i=0; i < item_count; i++) {
-        XmlBboxItem const * item = xml_bbox_collection_getc(collection, i);
+        XmlBboxItem const * item = xml_bbox_collection_getc(filtered_coll, i);
         xmlNode const *node = item->node;
         Box2D bbox = item->bbox;
         printf(
@@ -69,196 +60,51 @@ int main(int argc, char **argv) {
         printf("\n");
     }
 
-    xml_bbox_collection_destroy(collection);
+    xml_bbox_collection_destroy(filtered_coll);
     xmlFreeDoc(doc);
     xmlCleanupParser();
     return 0;
 
 CollectionMakeFailed:
     xmlFreeDoc(doc);
+    xmlCleanupParser();
 DocumentParseFailed:
 InvalidArgs:
     return 1;
 }
 
 
-void xml_bbox_collection_make_from_doc(
-    xmlNode *node,
-    XmlBboxCollection *collection,
-    Transform * trans_acc
+XmlBboxCollection * xml_bbox_collection_filter_by_dim(
+    XmlBboxCollection const *collection,
+    Size2D target_size,
+    float tol
 ) {
-    if (!trans_acc) {
-        trans_acc = geo_transform_make();
-        xml_bbox_collection_make_from_doc(node, collection, trans_acc);
-        geo_transform_destroy(trans_acc);
-        return;
-    }
-
-    for (xmlNode *node_cur = node; node_cur; node_cur = node_cur->next) {
-        if (node_cur->type != XML_ELEMENT_NODE) {
-            continue;
-        }
-        if (xmlStrEqual(node_cur->name, tag_defs)) {
-            continue;
-        }
-
-        Transform *trans_cur = trans_acc;
-        xmlChar *transform_attr = xmlGetProp(node_cur, tag_transform);
-
-        if (transform_attr) {
-            trans_cur = parse_transform(
-                trans_cur,
-                (const char *)transform_attr
-            );
-            xmlFree(transform_attr);
-        }
-
-        Box2D bbox = {0};
-        if (xmlStrEqual(node_cur->name, tag_path)) {
-            bbox = xml_path_extract_bbox(node_cur, trans_cur);
-        } else if (xmlStrEqual(node_cur->name, tag_rect)) {
-            bbox = xml_rect_extract_bbox(node_cur, trans_cur);
-        }
-
-        if (bbox.size.width != 0 && bbox.size.height != 0) {
-            xml_bbox_collection_append(collection, node_cur, bbox);
-        }
-
-        xml_bbox_collection_make_from_doc(
-            node_cur->children,
-            collection,
-            trans_cur
-        );
-
-        if (transform_attr) {
-            geo_transform_destroy(trans_cur);
-            trans_cur = NULL;
-        }
-    }
-}
-
-
-Box2D xml_path_extract_bbox(xmlNode *node, Transform const *trans) {
-    xmlChar *d = xmlGetProp(node, tag_d);
-    if (!d) {
-        return (Box2D){0};
-    }
-
-    SVGPath *path = svg_path_make_from_string((char const *)d);
-    xmlFree(d);
-    if (!path) {
-        return (Box2D){0};
-    }
-    svg_path_apply_transform(path, trans);
-
-    Box2D bbox = svg_path_get_bbox(path);
-
-    svg_path_destroy(path);
-
-    return bbox;
-}
-
-
-Box2D xml_rect_extract_bbox(xmlNode *node, Transform const *trans) {
-    Size2D size;
-    Point2D tl = {0};
-    if (!node || !xmlStrEqual(node->name, tag_rect)) {
-        return (Box2D){0};
-    }
-    char const *p;
-
-    char *width_str = (char *) xmlGetProp(node, tag_width);
-    if (!width_str) {
-        return (Box2D){0};
-    }
-    p = svg_double_parse(width_str, &size.width);
-    xmlFree(width_str);
-    if (p == width_str) {
-        return (Box2D){0};
-    }
-
-    char *height_str = (char *) xmlGetProp(node, tag_height);
-    if (!height_str) {
-        return (Box2D){0};
-    }
-    p = svg_double_parse(height_str, &size.height);
-    xmlFree(height_str);
-    if (p == height_str) {
-        return (Box2D){0};
-    }
-
-    char *x_str = (char *) xmlGetProp(node, tag_x);
-    char *y_str = (char *) xmlGetProp(node, tag_y);
-    if (x_str) {
-        svg_double_parse(x_str, &tl.x);
-        xmlFree(x_str);
-    }
-    if (y_str) {
-        svg_double_parse(y_str, &tl.y);
-        xmlFree(y_str);
-    }
-
-    Point2D tr = tl, bl = tl, br = tl;
-    tr.x += size.width;
-    bl.y += size.height;
-    br.x += size.width;
-    br.y += size.height;
-    tl = geo_transform_apply_point(trans, tl);
-    tr = geo_transform_apply_point(trans, tr);
-    bl = geo_transform_apply_point(trans, bl);
-    br = geo_transform_apply_point(trans, br);
-
-    double x_min = min4(tl.x, tr.x, bl.x, br.x);
-    double x_max = max4(tl.x, tr.x, bl.x, br.x);
-    double y_min = min4(tl.y, tr.y, bl.y, br.y);
-    double y_max = max4(tl.y, tr.y, bl.y, br.y);
-
-    return (Box2D) {
-        .tl = {.x=x_min, .y=y_min},
-        .size = {.width=x_max - x_min, .height=y_max - y_min},
-    };
-};
-
-
-
-Transform * parse_transform(Transform const *curr, const char *str) {
-    Transform *t = geo_transform_copy(curr);
-    if (!t) {
+    XmlBboxCollection *new_coll = xml_bbox_collection_make();
+    if (!new_coll) {
         return NULL;
     }
-    if (!str) {
-        return t;
+    unsigned int const item_count = xml_bbox_collection_get_count(collection);
+    for (unsigned int i = 0; i < item_count; i++) {
+        XmlBboxItem const *item = xml_bbox_collection_getc(collection, i);
+        Size2D item_size = item->bbox.size;
+
+        if (
+            item_size.width * (1+tol) < target_size.width
+            || target_size.width * (1+tol) < item_size.width
+        ) {
+            continue;
+        }
+
+        if (
+            item_size.height * (1+tol) < target_size.height
+            || target_size.height * (1+tol) < item_size.height
+        ) {
+            continue;
+        }
+
+        xml_bbox_collection_append(new_coll, item->node, item->bbox);
     }
 
-    svg_transform_perform_operation(t, str);
-
-    return t;
-}
-
-
-double min4(double a, double b, double c, double d) {
-    if (a > b) {
-        a = b;
-    }
-    if (a > c) {
-        a = c;
-    }
-    if (a > d) {
-        a = d;
-    }
-    return a;
+    return new_coll;
 };
 
-
-double max4(double a, double b, double c, double d) {
-    if (a < b) {
-        a = b;
-    }
-    if (a < c) {
-        a = c;
-    }
-    if (a < d) {
-        a = d;
-    }
-    return a;
-};
