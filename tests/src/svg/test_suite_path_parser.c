@@ -29,17 +29,15 @@ static int test_003(void) {
     SVGPathCommand const *command = svg_path_get_command(path, 0);
     ASSERT_NOT_NULL(command);
 
-    Point2D start = {0,0};
-    Point2D end = {1,1};
-    ASSERT_PATH_LINE_IS(*command, start, end);
+    ASSERT_PATH_IS_LINE(*command, 0, 0, 1, 1);
 
     svg_path_destroy(path);
     return 0;
 }
 
 
+
 static int test_004(void) {
-    Point2D start, end;
     SVGPathCommand const *command = NULL;
     SVGPath * path = svg_path_make_from_string("M 0 0 L 1 1 1 0 Z");
     ASSERT_NOT_NULL(path, "Expected path to be parsed");
@@ -47,28 +45,78 @@ static int test_004(void) {
 
     command = svg_path_get_command(path, 0);
     ASSERT_NOT_NULL(command, "Expected first command to be not NULL");
-    start = (Point2D){0,0};
-    end = (Point2D){1,1};
-    ASSERT_PATH_LINE_IS(*command, start, end, "Unexpected first command");
+    ASSERT_PATH_IS_LINE(*command, 0,0, 1,1 , "Unexpected first command");
 
     command = svg_path_get_command(path, 1);
     ASSERT_NOT_NULL(command, "Expected second command to be not NULL");
-    start = (Point2D){1,1};
-    end = (Point2D){1,0};
-    ASSERT_PATH_LINE_IS(*command, start, end, "Unexpected second command");
+    ASSERT_PATH_IS_LINE(*command, 1,1, 1,0, "Unexpected second command");
 
     command = svg_path_get_command(path, 2);
     ASSERT_NOT_NULL(command, "Expected third command to be not NULL");
-    start = (Point2D){1,0};
-    end = (Point2D){0,0};
-    ASSERT_PATH_LINE_IS(*command, start, end, "Unexpected third command");
+    ASSERT_PATH_IS_LINE(*command, 1,0, 0,0, "Unexpected third command");
 
     svg_path_destroy(path);
     return 0;
 }
 
 
-static int test_009(void) {
+static int test_005(void) {
+    SVGPathCommand const *command = NULL;
+    SVGPath * path = svg_path_make_from_string("M 0 0 L 1 1 M 2 2 L 4 4");
+    ASSERT_NOT_NULL(path);
+    ASSERT_EQ(svg_path_command_count(path), 2);
+
+    command = svg_path_get_command(path, 0);
+    ASSERT_NOT_NULL(command);
+    ASSERT_PATH_IS_LINE(*command, 0,0, 1,1);
+
+    command = svg_path_get_command(path, 1);
+    ASSERT_NOT_NULL(command);
+    ASSERT_PATH_IS_LINE(*command, 2,2, 4,4);
+
+    svg_path_destroy(path);
+    return 0;
+}
+
+
+static int test_006(void) {
+    SVGPathCommand const *command = NULL;
+    SVGPath * path = svg_path_make_from_string("M 0 0 L 1 1 m 2 2 L 4 4");
+    ASSERT_NOT_NULL(path);
+    ASSERT_EQ(svg_path_command_count(path), 2);
+
+    command = svg_path_get_command(path, 0);
+    ASSERT_NOT_NULL(command);
+    ASSERT_PATH_IS_LINE(*command, 0,0, 1,1);
+
+    command = svg_path_get_command(path, 1);
+    ASSERT_NOT_NULL(command);
+    ASSERT_PATH_IS_LINE(*command, 3,3, 4,4);
+
+    svg_path_destroy(path);
+    return 0;
+}
+
+static int test_007(void) {
+    SVGPathCommand const *command = NULL;
+    SVGPath * path = svg_path_make_from_string("m 0 0 L 1 1 m 2 2 L 4 4");
+    ASSERT_NOT_NULL(path);
+    ASSERT_EQ(svg_path_command_count(path), 2);
+
+    command = svg_path_get_command(path, 0);
+    ASSERT_NOT_NULL(command);
+    ASSERT_PATH_IS_LINE(*command, 0,0, 1,1);
+
+    command = svg_path_get_command(path, 1);
+    ASSERT_NOT_NULL(command);
+    ASSERT_PATH_IS_LINE(*command, 3,3, 4,4);
+
+    svg_path_destroy(path);
+    return 0;
+}
+
+
+static int test_101(void) {
     SVGPath * path = svg_path_make_from_string(
         "M -1.03,-1.03 Q -1.03,-1.03 -0.08,-2.62 0.86,-4.20 2.16,-5.19 3.47,"
         "-6.18 4.97,-6.90 6.48,-7.63 7.95,-8.20 9.42,-8.77 11.06,-9.26 12.70,"
@@ -112,11 +160,14 @@ static int test_009(void) {
 
 
 static Test tests[] = {
-    {.name="Basic parsing 01", .call=&test_001},
-    {.name="Basic parsing 02", .call=&test_002},
-    {.name="Basic parsing 03", .call=&test_003},
-    {.name="Basic parsing 04", .call=&test_004},
-    {.name="Real case", .call=&test_009},
+    {.name="Basic parsing 001", .call=&test_001},
+    {.name="Basic parsing 002", .call=&test_002},
+    {.name="Basic parsing 003", .call=&test_003},
+    {.name="Basic parsing 004", .call=&test_004},
+    {.name="Multiple M commands 005", .call=&test_005},
+    {.name="Relative M commands 006", .call=&test_006},
+    {.name="Relative M commands 007", .call=&test_007},
+    {.name="Real case 101", .call=&test_101},
     {.name="", .call=NULL},
 };
 

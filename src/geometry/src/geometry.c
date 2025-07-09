@@ -24,6 +24,12 @@ int geo_boxes_intersect(Box2D a, Box2D b) {
 
 
 Box2D geo_boxes_compose(Box2D a, Box2D b) {
+    if (a.size.width == 0 && a.size.height == 0) {
+        return b;
+    }
+    if (b.size.width == 0 && b.size.height == 0) {
+        return a;
+    }
     double x_min, x_max, y_min, y_max;
     double xs[4] = {
         a.tl.x, a.tl.x + a.size.width,

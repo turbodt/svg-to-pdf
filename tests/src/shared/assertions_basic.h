@@ -3,6 +3,7 @@
 
 
 #include "./config.h"
+#include <math.h>
 
 
 #define CALL(fn_call) { int err = fn_call; if (err != 0) return err; }
@@ -25,6 +26,7 @@
 #define ASSERT_NOT_ZERO(exp, ...) ASSERT_NEQ(exp, 0, ## __VA_ARGS__)
 #define ASSERT_STR_EQ(a, b, ...) ASSERT_ZERO(strcmp(a, b), ## __VA_ARGS__)
 #define ASSERT_STR_NEQ(a, b, ...) ASSERT_ZERO(!strcmp(a, b), ## __VA_ARGS__)
+#define ASSERT_FLOAT_EQ(a, b, ...) ASSERT(fabs((double)(a)-(double)(b)) < 1e-9, ## __VA_ARGS__)
 
 
 #endif

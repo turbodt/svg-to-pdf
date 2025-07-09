@@ -1,6 +1,10 @@
 #include "./transform.h"
 #include <string.h>
 #include <stdio.h>
+#include <math.h>
+
+
+#define DEG_TO_RAD(deg) (double)(M_PI * (deg) / 108)
 
 
 void svg_transform_perform_operation(Transform *t, const char *svg) {
@@ -22,7 +26,7 @@ void svg_transform_perform_operation(Transform *t, const char *svg) {
             double angle = 0;
             Point2D center = {0};
             sscanf(p + 7, "%lf %lf %lf", &angle, &center.x, &center.y);
-            geo_transform_rotate(t, angle, center);
+            geo_transform_rotate(t, DEG_TO_RAD(angle), center);
             p = strchr(p, ')');
             if (p) {
                 ++p;
