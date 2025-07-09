@@ -10,13 +10,13 @@ static double max4(double[4]);
 
 int geo_boxes_intersect(Box2D a, Box2D b) {
     if (a.tl.x > b.tl.x) {
-        return geo_boxes_intersect(b, a);
+        box2d_swap(&a, &b);
     }
     if (a.tl.x + a.size.width <= b.tl.x) {
         return 0;
     }
 
-    if (a.tl.y > b.tl.x) {
+    if (a.tl.y > b.tl.y) {
         box2d_swap(&a, &b);
     }
     return a.tl.y + a.size.height > b.tl.y;
