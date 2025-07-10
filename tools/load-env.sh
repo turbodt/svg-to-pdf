@@ -33,6 +33,7 @@ main() {
     add_dir "${MODULE_DIR}/external/libxml2/"
     add_dir "${MODULE_DIR}/src/geometry/"
     add_dir "${MODULE_DIR}/src/svg/"
+    add_dir "${MODULE_DIR}/src/bounding-box/"
 }
 
 

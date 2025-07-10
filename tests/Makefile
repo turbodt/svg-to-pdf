@@ -3,17 +3,12 @@ TARGET_DIR ?= $(realpath ../)/bin
 SRC_DIR = ./src
 MAIN_DIR ?= $(realpath ../)
 
-INCLUDES = \
-	$(EXTERNAL_INCLUDES) \
-	-I$(MAIN_DIR)/src/geometry/include \
-	-I$(MAIN_DIR)/src/svg/include \
+INCLUDES = $(EXTERNAL_INCLUDES) \
 	-I./src/shared/include \
 	-I./src/svg/include \
 	-I$(SRC_DIR) \
 
 LIBRARIES = \
-	-L$(MAIN_DIR)/src/svg/lib -lcustom-svg \
-	-L$(MAIN_DIR)/src/geometry/lib -lgeometry-2d \
 	-L./src/svg/lib -ltest-svg \
 	-L./src/shared/lib -ltest-shared \
 	$(EXTERNAL_LIBRARIES)

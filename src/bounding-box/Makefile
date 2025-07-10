@@ -1,15 +1,14 @@
-LIB_NAME = test-shared
+LIB_NAME = bounding-box
 LIB_DIR = ./lib
-MAIN_DIR ?= $(realpath ../../..)
+MAIN_DIR ?= $(realpath ../..)
 EXTERNAL_DIR ?= $(realpath $(MAIN_DIR)/external)
-SRC_DIR = ./
+SRC_DIR = ./src
 
 INCLUDES = \
 	$(EXTERNAL_INCLUDES) \
 	-I${SRC_DIR} \
-
-LIBRARIES = \
-	$(EXTERNAL_LIBRARIES)
+	-I../geometry/include \
+	-I../svg/include \
 
 #
 #

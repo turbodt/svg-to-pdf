@@ -1,102 +1,102 @@
-// svg_parser.c
-// Extract all <path> elements and apply inherited group transformations using libxml2
-
 #include <stdio.h>
-#include <stdlib.h>
-#include <string.h>
-#include <libxml/parser.h>
-#include <libxml/tree.h>
-#include <libxml/xpath.h>
-#include <libxml/xpathInternals.h>
-#include <math.h>
-#include <custom-svg.h>
+#include <errno.h>
+#include <geometry.h>
+#include <bounding-box.h>
 
 
-Transform * parse_transform(Transform const *curr, const char *str) {
-    Transform *t = geo_transform_copy(curr);
-    if (!t) {
-        return NULL;
-    }
-    if (!str) {
-        return t;
-    }
-
-    svg_transform_perform_operation(t, str);
-
-    return t;
-}
-
-void extract_paths(xmlNode *node, Transform * accumulated) {
-    static xmlChar const *tag_transform = (xmlChar const *)"transform";
-    static xmlChar const *tag_path = (xmlChar const *)"path";
-    static xmlChar const *tag_d = (xmlChar const *)"d";
-
-    if (!accumulated) {
-        accumulated = geo_transform_make();
-        extract_paths(node, accumulated);
-        geo_transform_destroy(accumulated);
-        return;
-    }
-
-    for (xmlNode *cur = node; cur; cur = cur->next) {
-        if (cur->type != XML_ELEMENT_NODE) {
-            continue;
-        }
-
-        Transform *current = accumulated;
-        xmlChar *transform_attr = xmlGetProp(cur, tag_transform);
-
-        if (transform_attr) {
-            current = parse_transform(
-                current,
-                (const char *)transform_attr
-            );
-            xmlFree(transform_attr);
-        }
-
-        if (xmlStrEqual(cur->name, tag_path)) {
-            xmlChar *d = xmlGetProp(cur, tag_d);
-            if (d) {
-                double const *m = geo_transform_getc_matrix(current);
-                printf("Path: %s\n", d);
-                printf(
-                    "Transformed by:\n"
-                    "/ %f %f %f \\\n"
-                    "| %f %f %f |\n"
-                    "\\ 0 0 1 /\n",
-                    m[0], m[1], m[2],
-                    m[3], m[4], m[5]
-                );
-                xmlFree(d);
-            }
-        }
-
-        extract_paths(cur->children, current);
-
-        if (transform_attr) {
-            geo_transform_destroy(current);
-            current = NULL;
-        }
-    }
-}
+#define DEFAULT_PAGE_WIDTH 2400
+#define DEFAULT_PAGE_HEIGHT 3400
+#define DEFAULT_PAGE_DIM_TOL 0.05
+#define OUT_SVG_FILENAME_TEMPLATE "%s/page-%d.svg"
+#define MAX_PAGE_COUNT 100
 
 
 int main(int argc, char **argv) {
-    if (argc < 2) {
-        fprintf(stderr, "Usage: %s file.svg\n", argv[0]);
-        return 1;
+    BboxCollection *page_inner_items[MAX_PAGE_COUNT] = {0};
+    SvgDocument *page_docs[MAX_PAGE_COUNT] = {0};
+    if (argc < 3) {
+        fprintf(stderr, "Usage: %s file.svg out_dirname\n", argv[0]);
+        goto InvalidArgs;
+    }
+    char const *src_filename = argv[1];
+    char const *dst_dirname = argv[2];
+
+    SvgDocument *src_doc = bbox_svg_doc_make_from_file(src_filename);
+    if (!src_doc) {
+        perror("Failed at parsing file");
+        goto DocumentParseFailed;
     }
 
-    xmlDoc *doc = xmlReadFile(argv[1], NULL, 0);
-    if (!doc) {
-        fprintf(stderr, "Failed to parse %s\n", argv[1]);
-        return 1;
+    BboxCollection *all_items = bbox_collection_make_from_doc(src_doc);
+    if (!all_items) {
+        perror("Failed at extracting bounding box collection");
+        goto CollectionMakeFailed;
     }
 
-    xmlNode *root = xmlDocGetRootElement(doc);
-    extract_paths(root, NULL);
+    BboxCollection *page_items = bbox_collection_filter_by_dimensions(
+        all_items,
+        (Size2D){DEFAULT_PAGE_WIDTH,DEFAULT_PAGE_HEIGHT},
+        DEFAULT_PAGE_DIM_TOL
+    );
+    if (!page_items) {
+        goto FilteredCollectionMakeFailed;
+    }
 
-    xmlFreeDoc(doc);
-    xmlCleanupParser();
+    bbox_collection_sort_dim(page_items);
+
+    unsigned int page_count = bbox_collection_get_count(page_items);
+    printf(
+        "Obtained %d XML page elements out of %d.\n",
+        page_count,
+        bbox_collection_get_count(all_items)
+    );
+
+    for (unsigned int i=0; i < page_count; i++) {
+        BboxItem const * page_item = bbox_collection_getc(page_items, i);
+        page_inner_items[i] = \
+            bbox_collection_filter_intersecting(all_items, page_item);
+        if (!page_inner_items[i]) {
+            continue;
+        }
+
+        printf(
+            "For page %d we have %d elements.\n",
+            i+1,
+            bbox_collection_get_count(page_inner_items[i])
+        );
+
+        page_docs[i] = bbox_svg_doc_make_from_subset(
+            src_doc,
+            page_inner_items[i]
+        );
+        bbox_svg_doc_set_viewbox(page_docs[i], page_item->bbox);
+    }
+
+    for (unsigned int i=0; i < page_count; i++) {
+        char filename[128];
+        snprintf(
+            filename,
+            sizeof(filename),
+            OUT_SVG_FILENAME_TEMPLATE,
+            dst_dirname, i
+        );
+        bbox_svg_doc_save_file(page_docs[i], filename);
+        bbox_svg_doc_destroy(page_docs[i]);
+        bbox_collection_destroy(page_inner_items[i]);
+    }
+
+    bbox_collection_destroy(page_items);
+    bbox_collection_destroy(all_items);
+    bbox_svg_doc_destroy(src_doc);
+    bbox_clean_up();
     return 0;
-}
+
+FilteredCollectionMakeFailed:
+    bbox_collection_destroy(all_items);
+CollectionMakeFailed:
+    bbox_svg_doc_destroy(src_doc);
+    bbox_clean_up();
+DocumentParseFailed:
+InvalidArgs:
+    return 1;
+};

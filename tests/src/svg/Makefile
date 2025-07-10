@@ -6,8 +6,6 @@ SRC_DIR = ./
 
 INCLUDES = \
 	$(EXTERNAL_INCLUDES) \
-	-I$(MAIN_DIR)/src/geometry/include \
-	-I$(MAIN_DIR)/src/svg/include \
 	-I../shared/include \
 	-I${SRC_DIR} \
 

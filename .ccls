@@ -2,4 +2,5 @@ gcc
 %c -I./external/libxml2/include/libxml2
 %c -I./src/geometry/include
 %c -I./src/svg/include
+%c -I./src/bounding-box/include
 -std=c11
