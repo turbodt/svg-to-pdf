@@ -7,18 +7,19 @@
 #define DEFAULT_PAGE_WIDTH 2400
 #define DEFAULT_PAGE_HEIGHT 3400
 #define DEFAULT_PAGE_DIM_TOL 0.05
-#define OUT_SVG_FILENAME_TEMPLATE "./data/page-%d.svg"
+#define OUT_SVG_FILENAME_TEMPLATE "%s/page-%d.svg"
 #define MAX_PAGE_COUNT 100
 
 
 int main(int argc, char **argv) {
     BboxCollection *page_inner_items[MAX_PAGE_COUNT] = {0};
     SvgDocument *page_docs[MAX_PAGE_COUNT] = {0};
-    if (argc < 2) {
-        fprintf(stderr, "Usage: %s file.svg\n", argv[0]);
+    if (argc < 3) {
+        fprintf(stderr, "Usage: %s file.svg out_dirname\n", argv[0]);
         goto InvalidArgs;
     }
     char const *src_filename = argv[1];
+    char const *dst_dirname = argv[2];
 
     SvgDocument *src_doc = bbox_svg_doc_make_from_file(src_filename);
     if (!src_doc) {
@@ -72,8 +73,13 @@ int main(int argc, char **argv) {
     }
 
     for (unsigned int i=0; i < page_count; i++) {
-        char filename[32];
-        snprintf(filename, 32, OUT_SVG_FILENAME_TEMPLATE, i);
+        char filename[128];
+        snprintf(
+            filename,
+            sizeof(filename),
+            OUT_SVG_FILENAME_TEMPLATE,
+            dst_dirname, i
+        );
         bbox_svg_doc_save_file(page_docs[i], filename);
         bbox_svg_doc_destroy(page_docs[i]);
         bbox_collection_destroy(page_inner_items[i]);
