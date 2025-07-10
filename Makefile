@@ -1,6 +1,6 @@
 EXTERNAL_DIR ?= $(realpath ./)/external
 TARGET_DIR ?= $(realpath ./)/bin
-SRC_DIR = ./src
+SRC_DIR = $(realpath ./)/src
 
 EXTERNAL_INCLUDES = \
 	-I$(EXTERNAL_DIR)/libxml2/include/libxml2 \
@@ -70,8 +70,8 @@ tests:
 	$(MAKE) clean -C ./tests
 	$(MAKE) -C ./tests \
 		MAIN_DIR=$(realpath ./) \
-		EXTERNAL_INCLUDES="$(EXTERNAL_INCLUDES)" \
-		EXTERNAL_LIBRARIES="$(EXTERNAL_LIBRARIES)"
+		EXTERNAL_INCLUDES="$(INCLUDES)" \
+		EXTERNAL_LIBRARIES="$(LIBRARIES)"
 
 clean:
 	$(MAKE) clean -C ./tests

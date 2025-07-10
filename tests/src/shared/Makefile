@@ -7,7 +7,6 @@ SRC_DIR = ./
 INCLUDES = \
 	$(EXTERNAL_INCLUDES) \
 	-I${SRC_DIR} \
-	-I$(MAIN_DIR)/include \
 
 LIBRARIES = \
 	$(EXTERNAL_LIBRARIES)
