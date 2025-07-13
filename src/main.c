@@ -7,8 +7,33 @@
 #define DEFAULT_PAGE_WIDTH 2400
 #define DEFAULT_PAGE_HEIGHT 3400
 #define DEFAULT_PAGE_DIM_TOL 0.05
-#define OUT_SVG_FILENAME_TEMPLATE "%s/page-%d.svg"
 #define MAX_PAGE_COUNT 100
+#define POSITON_ARRANGEMENT_TOL 0.05
+
+
+static int bbox_collection_cmp(BboxItem const *, BboxItem const *);
+
+struct {
+    struct {
+        Size2D size;
+        float tol;
+    } page;
+    struct {
+        char const *filename;
+    } input;
+    struct {
+        char file_template[128];
+        char const *dirname;
+    } output;
+} props = {
+    .page = {
+        .size = {
+            .width = DEFAULT_PAGE_WIDTH,
+            .height = DEFAULT_PAGE_HEIGHT,
+        },
+        .tol = DEFAULT_PAGE_DIM_TOL,
+    },
+};
 
 
 int main(int argc, char **argv) {
@@ -18,10 +43,10 @@ int main(int argc, char **argv) {
         fprintf(stderr, "Usage: %s file.svg out_dirname\n", argv[0]);
         goto InvalidArgs;
     }
-    char const *src_filename = argv[1];
-    char const *dst_dirname = argv[2];
+    props.input.filename = argv[1];
+    props.output.dirname = argv[2];
 
-    SvgDocument *src_doc = bbox_svg_doc_make_from_file(src_filename);
+    SvgDocument *src_doc = bbox_svg_doc_make_from_file(props.input.filename);
     if (!src_doc) {
         perror("Failed at parsing file");
         goto DocumentParseFailed;
@@ -35,14 +60,14 @@ int main(int argc, char **argv) {
 
     BboxCollection *page_items = bbox_collection_filter_by_dimensions(
         all_items,
-        (Size2D){DEFAULT_PAGE_WIDTH,DEFAULT_PAGE_HEIGHT},
-        DEFAULT_PAGE_DIM_TOL
+        props.page.size,
+        props.page.tol
     );
     if (!page_items) {
         goto FilteredCollectionMakeFailed;
     }
 
-    bbox_collection_sort_dim(page_items);
+    bbox_collection_sort(page_items, &bbox_collection_cmp);
 
     unsigned int page_count = bbox_collection_get_count(page_items);
     printf(
@@ -77,8 +102,9 @@ int main(int argc, char **argv) {
         snprintf(
             filename,
             sizeof(filename),
-            OUT_SVG_FILENAME_TEMPLATE,
-            dst_dirname, i
+            "%s/page-%i.svg",
+            props.output.dirname,
+            i+1
         );
         bbox_svg_doc_save_file(page_docs[i], filename);
         bbox_svg_doc_destroy(page_docs[i]);
@@ -99,4 +125,32 @@ CollectionMakeFailed:
 DocumentParseFailed:
 InvalidArgs:
     return 1;
+};
+
+
+int bbox_collection_cmp(BboxItem const *a, BboxItem const *b) {
+    static const float pos_tol = 1 - POSITON_ARRANGEMENT_TOL;
+    if (a->bbox.tl.y + pos_tol * props.page.size.height < b->bbox.tl.y) {
+        return -1;
+    } else if (
+        b->bbox.tl.y + pos_tol * props.page.size.height < a->bbox.tl.y
+    ) {
+        return 1;
+    }
+
+    if (a->bbox.tl.x + pos_tol * props.page.size.height < b->bbox.tl.x) {
+        return -1;
+    } else if (
+        b->bbox.tl.x + pos_tol * props.page.size.height < a->bbox.tl.x
+    ) {
+        return 1;
+    }
+
+    if (a->bbox.tl.y < b->bbox.tl.y) {
+        return -1;
+    } else if (b->bbox.tl.y < a->bbox.tl.y) {
+        return 1;
+    }
+
+    return a->bbox.tl.x - b->bbox.tl.x;
 };
