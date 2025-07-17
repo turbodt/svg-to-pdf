@@ -138,10 +138,10 @@ int bbox_collection_cmp(BboxItem const *a, BboxItem const *b) {
         return 1;
     }
 
-    if (a->bbox.tl.x + pos_tol * props.page.size.height < b->bbox.tl.x) {
+    if (a->bbox.tl.x + pos_tol * props.page.size.width < b->bbox.tl.x) {
         return -1;
     } else if (
-        b->bbox.tl.x + pos_tol * props.page.size.height < a->bbox.tl.x
+        b->bbox.tl.x + pos_tol * props.page.size.width < a->bbox.tl.x
     ) {
         return 1;
     }
