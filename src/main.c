@@ -2,6 +2,7 @@
 #include <errno.h>
 #include <geometry.h>
 #include <bounding-box.h>
+#include "./app_props.h"
 
 
 #define DEFAULT_PAGE_WIDTH 2400
@@ -10,22 +11,10 @@
 #define MAX_PAGE_COUNT 100
 #define POSITON_ARRANGEMENT_TOL 0.05
 
-
 static int bbox_collection_cmp(BboxItem const *, BboxItem const *);
 
-struct {
-    struct {
-        Size2D size;
-        float tol;
-    } page;
-    struct {
-        char const *filename;
-    } input;
-    struct {
-        char file_template[128];
-        char const *dirname;
-    } output;
-} props = {
+
+AppProps props = {
     .page = {
         .size = {
             .width = DEFAULT_PAGE_WIDTH,
@@ -39,12 +28,10 @@ struct {
 int main(int argc, char **argv) {
     BboxCollection *page_inner_items[MAX_PAGE_COUNT] = {0};
     SvgDocument *page_docs[MAX_PAGE_COUNT] = {0};
-    if (argc < 3) {
-        fprintf(stderr, "Usage: %s file.svg out_dirname\n", argv[0]);
+    if (app_parse_props(argc, argv, &props)) {
+        app_print_usage(stderr, argv[0]);
         goto InvalidArgs;
     }
-    props.input.filename = argv[1];
-    props.output.dirname = argv[2];
 
     SvgDocument *src_doc = bbox_svg_doc_make_from_file(props.input.filename);
     if (!src_doc) {
@@ -154,3 +141,4 @@ int bbox_collection_cmp(BboxItem const *a, BboxItem const *b) {
 
     return a->bbox.tl.x - b->bbox.tl.x;
 };
+

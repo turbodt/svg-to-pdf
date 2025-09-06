@@ -18,7 +18,7 @@ check_commands() {
 }
 
 check_input() {
-    if [ $# -ne 1 ]; then
+    if [ $# -lt 1 ]; then
         usage
     fi
 
@@ -47,7 +47,7 @@ split_svg() {
     fi
 
     echo "Splitting SVG into pages..."
-    ./bin/main "$SVG_FILE" "$PAGES_DIR"
+    ./bin/main "$SVG_FILE" "$PAGES_DIR" $@
 }
 
 count_pages() {
@@ -89,8 +89,9 @@ merge_pdfs() {
 ### Main execution
 check_commands
 check_input "$@"
+shift;
 prepare_paths
-split_svg
+split_svg "$@"
 PAGE_COUNT=$(count_pages)
 convert_pages
 merge_pdfs
