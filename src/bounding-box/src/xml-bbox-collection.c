@@ -134,6 +134,8 @@ int ensure_capacity(Impl *impl, unsigned int target_capacity) {
     unsigned int new_capacity;
     if (impl->capacity == 0) {
         new_capacity = 8;
+    } else {
+        new_capacity = impl->capacity;
     }
     while (new_capacity > 8 && new_capacity >= 2*target_capacity) {
         new_capacity /= 2;
@@ -144,9 +146,9 @@ int ensure_capacity(Impl *impl, unsigned int target_capacity) {
 
     BboxItem *new_ptr;
     if (impl->capacity == 0) {
-        new_ptr = malloc(sizeof(BboxItem)*target_capacity);
+        new_ptr = malloc(sizeof(BboxItem)*new_capacity);
     } else {
-        new_ptr = realloc(impl->items, sizeof(BboxItem)*target_capacity);
+        new_ptr = realloc(impl->items, sizeof(BboxItem)*new_capacity);
     }
     if (!new_ptr) {
         return 1;
