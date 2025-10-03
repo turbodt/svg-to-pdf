@@ -33,6 +33,8 @@ int app_parse_props(int argc, char **argv, AppProps *props) {
             if (arg == end) {
                 return 1;
             }
+        } else if (strcmp(arg, "--exclude-containers") == 0) {
+            props->page.include_containers = 0;
         } else {
             return 1;
         }
@@ -46,4 +48,5 @@ void app_print_usage(FILE *out, char const *command) {
     fprintf(out, "\nArgumens:\n");
     fprintf(out, "\n\t-h, --height %%d\n");
     fprintf(out, "\n\t-w, --width %%d\n");
+    fprintf(out, "\n\t--exclude-containers\n");
 };
