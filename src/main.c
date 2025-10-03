@@ -22,7 +22,8 @@ AppProps props = {
             .height = DEFAULT_PAGE_HEIGHT,
         },
         .tol = DEFAULT_PAGE_DIM_TOL,
-        .include_containers = 1,
+        .include_containers = -1,
+        .merge_duplicated_containers = -1,
     },
 };
 
@@ -99,7 +100,8 @@ int main(int argc, char **argv) {
         );
 
         while (
-            next_page_item
+            props.page.merge_duplicated_containers
+            && next_page_item
             && bbox_collection_cmp(page_item, next_page_item) == 0
         ) {
             equivalent_page_count++;

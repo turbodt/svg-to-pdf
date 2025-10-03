@@ -35,6 +35,8 @@ int app_parse_props(int argc, char **argv, AppProps *props) {
             }
         } else if (strcmp(arg, "--exclude-containers") == 0) {
             props->page.include_containers = 0;
+        } else if (strcmp(arg, "--allow-duplicated-containers") == 0) {
+            props->page.merge_duplicated_containers = 0;
         } else {
             return 1;
         }
@@ -49,4 +51,5 @@ void app_print_usage(FILE *out, char const *command) {
     fprintf(out, "\n\t-h, --height %%d\n");
     fprintf(out, "\n\t-w, --width %%d\n");
     fprintf(out, "\n\t--exclude-containers\n");
+    fprintf(out, "\n\t--allow-duplicated-containers\n");
 };

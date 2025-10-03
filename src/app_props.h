@@ -10,7 +10,8 @@ typedef struct {
     struct {
         Size2D size;
         float tol;
-        int include_containers;
+        int include_containers : 1;
+        int merge_duplicated_containers : 1;
     } page;
     struct {
         char const *filename;
