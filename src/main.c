@@ -1,3 +1,4 @@
+#include <stdlib.h>
 #include <stdio.h>
 #include <errno.h>
 #include <geometry.h>
@@ -21,13 +22,12 @@ AppProps props = {
             .height = DEFAULT_PAGE_HEIGHT,
         },
         .tol = DEFAULT_PAGE_DIM_TOL,
+        .include_containers = 1,
     },
 };
 
 
 int main(int argc, char **argv) {
-    BboxCollection *page_inner_items[MAX_PAGE_COUNT] = {0};
-    SvgDocument *page_docs[MAX_PAGE_COUNT] = {0};
     if (app_parse_props(argc, argv, &props)) {
         app_print_usage(stderr, argv[0]);
         goto InvalidArgs;
@@ -45,41 +45,61 @@ int main(int argc, char **argv) {
         goto CollectionMakeFailed;
     }
 
-    BboxCollection *page_items = bbox_collection_filter_by_dimensions(
+    BboxCollection *page_collection = bbox_collection_filter_by_dimensions(
         all_items,
         props.page.size,
         props.page.tol
     );
-    if (!page_items) {
+    if (!page_collection) {
         goto FilteredCollectionMakeFailed;
     }
 
-    bbox_collection_sort(page_items, &bbox_collection_cmp);
+    bbox_collection_sort(page_collection, &bbox_collection_cmp);
 
-    unsigned int page_count = bbox_collection_get_count(page_items);
+    unsigned int page_count = bbox_collection_get_count(page_collection);
     printf(
         "Obtained %d XML page elements out of %d.\n",
         page_count,
         bbox_collection_get_count(all_items)
     );
 
+    BboxCollection **page_content_collections =
+        (BboxCollection **) malloc(sizeof(BboxCollection *)*page_count);
+    if (!page_content_collections) {
+        goto PageContentCollectionAllocFailed;
+    }
+
+    SvgDocument **page_docs =
+        (SvgDocument **) malloc(sizeof(SvgDocument *)*page_count);
+    if (!page_docs) {
+        goto PageDocumentsAllocFailed;
+    }
+
     for (unsigned int i=0; i < page_count; i++) {
-        BboxItem const * page_item = bbox_collection_getc(page_items, i);
-        page_inner_items[i] = \
+        BboxItem const * page_item = bbox_collection_getc(page_collection, i);
+        page_content_collections[i] = \
             bbox_collection_filter_intersecting(all_items, page_item);
-        if (!page_inner_items[i]) {
+        if (!page_content_collections[i]) {
             continue;
+        }
+
+        if (props.page.include_containers) {
+            bbox_collection_append(
+                page_content_collections[i],
+                page_item->id,
+                page_item->bbox
+            );
         }
 
         printf(
             "For page %d we have %d elements.\n",
             i+1,
-            bbox_collection_get_count(page_inner_items[i])
+            bbox_collection_get_count(page_content_collections[i])
         );
 
         page_docs[i] = bbox_svg_doc_make_from_subset(
             src_doc,
-            page_inner_items[i]
+            page_content_collections[i]
         );
         bbox_svg_doc_set_viewbox(page_docs[i], page_item->bbox);
     }
@@ -95,15 +115,20 @@ int main(int argc, char **argv) {
         );
         bbox_svg_doc_save_file(page_docs[i], filename);
         bbox_svg_doc_destroy(page_docs[i]);
-        bbox_collection_destroy(page_inner_items[i]);
+        bbox_collection_destroy(page_content_collections[i]);
     }
 
-    bbox_collection_destroy(page_items);
+    free(page_docs);
+    free(page_content_collections);
+    bbox_collection_destroy(page_collection);
     bbox_collection_destroy(all_items);
     bbox_svg_doc_destroy(src_doc);
     bbox_clean_up();
     return 0;
-
+PageDocumentsAllocFailed:
+    free(page_content_collections);
+PageContentCollectionAllocFailed:
+    bbox_collection_destroy(page_collection);
 FilteredCollectionMakeFailed:
     bbox_collection_destroy(all_items);
 CollectionMakeFailed:
