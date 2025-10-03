@@ -89,7 +89,7 @@ int main(int argc, char **argv) {
         snprintf(
             filename,
             sizeof(filename),
-            "%s/page-%i.svg",
+            "%s/page-%05i.svg",
             props.output.dirname,
             i+1
         );

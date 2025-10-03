@@ -62,8 +62,8 @@ convert_pages() {
     echo "Converting $PAGE_COUNT pages to PDF..."
     i=1
     while [ $i -le $PAGE_COUNT ]; do
-        PAGE_SVG="$PAGES_DIR/page-$i.svg"
-        PAGE_PDF="$PAGES_DIR/page-$i.pdf"
+        PAGE_SVG=$(printf "$PAGES_DIR/page-%05i.svg" $i)
+        PAGE_PDF=$(printf "$PAGES_DIR/page-%05i.pdf" $i)
         if [ -f "$PAGE_SVG" ]; then
             inkscape "$PAGE_SVG" --actions="export-type:pdf;export-filename:$PAGE_PDF;export-do" || {
                 echo "Warning: failed to convert $PAGE_SVG"
