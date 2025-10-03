@@ -27,6 +27,8 @@ BboxItem const * bbox_collection_getc(
 
 
 int bbox_collection_append(BboxCollection *, void const *id, Box2D bbox);
+int bbox_collection_remove(BboxCollection *, unsigned int index);
+
 void bbox_collection_sort(
     BboxCollection *,
     int(*comparator)(BboxItem const *, BboxItem const *)
@@ -34,6 +36,11 @@ void bbox_collection_sort(
 void bbox_collection_sort_area(BboxCollection *);
 void bbox_collection_sort_dim(BboxCollection *);
 BboxCollection *bbox_collection_filter_by_dimensions(
+    BboxCollection const *collection,
+    Size2D target_size,
+    float tolerance
+);
+BboxCollection *bbox_collection_filter_by_dimensions_not(
     BboxCollection const *collection,
     Size2D target_size,
     float tolerance

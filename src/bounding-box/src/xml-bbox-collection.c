@@ -77,6 +77,32 @@ int bbox_collection_append(
 };
 
 
+int bbox_collection_remove(BboxCollection *impl, unsigned int index) {
+    if (index >= impl->count) {
+        return 2;
+    }
+
+    BboxItem removed_item = impl->items[index];
+    for (unsigned int i = index + 1; i < impl->count; i++) {
+        impl->items[i-1] = impl->items[i];
+    }
+
+    int err = ensure_capacity(impl, impl->count - 1);
+    if (err) {
+        goto RemoveItemReallocFailed;
+    }
+    impl->count--;
+
+    return 0;
+RemoveItemReallocFailed:
+    for (unsigned int i = index + 1; i < impl->count; i++) {
+        impl->items[i] = impl->items[i-1];
+    }
+    impl->items[index] = removed_item;
+    return err;
+};
+
+
 void bbox_collection_sort(
     BboxCollection *impl,
     int(*cmp)(BboxItem const *, BboxItem const *)
@@ -109,7 +135,10 @@ int ensure_capacity(Impl *impl, unsigned int target_capacity) {
     if (impl->capacity == 0) {
         new_capacity = 8;
     } else {
-        new_capacity = 2*impl->capacity;
+        new_capacity = impl->capacity;
+    }
+    while (new_capacity > 8 && new_capacity >= 2*target_capacity) {
+        new_capacity /= 2;
     }
     while (new_capacity < target_capacity) {
         new_capacity *= 2;
@@ -117,15 +146,15 @@ int ensure_capacity(Impl *impl, unsigned int target_capacity) {
 
     BboxItem *new_ptr;
     if (impl->capacity == 0) {
-        new_ptr = malloc(sizeof(BboxItem)*target_capacity);
+        new_ptr = malloc(sizeof(BboxItem)*new_capacity);
     } else {
-        new_ptr = realloc(impl->items, sizeof(BboxItem)*target_capacity);
+        new_ptr = realloc(impl->items, sizeof(BboxItem)*new_capacity);
     }
     if (!new_ptr) {
         return 1;
     }
     impl->items = new_ptr;
-    impl->capacity = target_capacity;
+    impl->capacity = new_capacity;
 
     return 0;
 };
