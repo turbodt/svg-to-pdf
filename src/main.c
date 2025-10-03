@@ -10,7 +10,8 @@
 #define DEFAULT_PAGE_HEIGHT 3400
 #define DEFAULT_PAGE_DIM_TOL 0.05
 #define MAX_PAGE_COUNT 100
-#define POSITON_ARRANGEMENT_TOL 0.05
+#define POSITION_ARRANGEMENT_TOL 0.30
+
 
 static int bbox_collection_cmp(BboxItem const *, BboxItem const *);
 
@@ -131,8 +132,12 @@ int main(int argc, char **argv) {
         }
 
         printf(
-            "For page %d we have %d elements.",
+            "For page %d [(%.2f,%.2f) %.2fx%.2f] we have %d elements.",
             i+1,
+            page_item->bbox.tl.x,
+            page_item->bbox.tl.y,
+            page_item->bbox.size.width,
+            page_item->bbox.size.height,
             bbox_collection_get_count(page_content_collections[i])
         );
         if (equivalent_page_count > 1) {
@@ -193,7 +198,7 @@ InvalidArgs:
 
 
 int bbox_collection_cmp(BboxItem const *a, BboxItem const *b) {
-    static const float pos_tol = 1 - POSITON_ARRANGEMENT_TOL;
+    static const float pos_tol = 1 - POSITION_ARRANGEMENT_TOL;
     if (a->bbox.tl.y + pos_tol * props.page.size.height < b->bbox.tl.y) {
         return -1;
     } else if (
@@ -210,11 +215,5 @@ int bbox_collection_cmp(BboxItem const *a, BboxItem const *b) {
         return 1;
     }
 
-    if (a->bbox.tl.y < b->bbox.tl.y) {
-        return -1;
-    } else if (b->bbox.tl.y < a->bbox.tl.y) {
-        return 1;
-    }
-
-    return a->bbox.tl.x - b->bbox.tl.x;
+    return 0;
 };
