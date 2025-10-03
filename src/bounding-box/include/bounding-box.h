@@ -27,6 +27,8 @@ BboxItem const * bbox_collection_getc(
 
 
 int bbox_collection_append(BboxCollection *, void const *id, Box2D bbox);
+int bbox_collection_remove(BboxCollection *, unsigned int index);
+
 void bbox_collection_sort(
     BboxCollection *,
     int(*comparator)(BboxItem const *, BboxItem const *)

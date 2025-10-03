@@ -77,6 +77,32 @@ int bbox_collection_append(
 };
 
 
+int bbox_collection_remove(BboxCollection *impl, unsigned int index) {
+    if (index >= impl->count) {
+        return 2;
+    }
+
+    BboxItem removed_item = impl->items[index];
+    for (unsigned int i = index + 1; i < impl->count; i++) {
+        impl->items[i-1] = impl->items[i];
+    }
+
+    int err = ensure_capacity(impl, impl->count - 1);
+    if (err) {
+        goto RemoveItemReallocFailed;
+    }
+    impl->count--;
+
+    return 0;
+RemoveItemReallocFailed:
+    for (unsigned int i = index + 1; i < impl->count; i++) {
+        impl->items[i] = impl->items[i-1];
+    }
+    impl->items[index] = removed_item;
+    return err;
+};
+
+
 void bbox_collection_sort(
     BboxCollection *impl,
     int(*cmp)(BboxItem const *, BboxItem const *)
@@ -126,7 +152,7 @@ int ensure_capacity(Impl *impl, unsigned int target_capacity) {
         return 1;
     }
     impl->items = new_ptr;
-    impl->capacity = target_capacity;
+    impl->capacity = new_capacity;
 
     return 0;
 };
