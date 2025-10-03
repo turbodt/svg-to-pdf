@@ -54,6 +54,16 @@ int main(int argc, char **argv) {
         goto FilteredCollectionMakeFailed;
     }
 
+    BboxCollection *not_page_collection =
+        bbox_collection_filter_by_dimensions_not(
+            all_items,
+            props.page.size,
+            props.page.tol
+        );
+    if (!not_page_collection) {
+        goto Filtered2CollectionMakeFailed;
+    }
+
     bbox_collection_sort(page_collection, &bbox_collection_cmp);
 
     unsigned int page_count = bbox_collection_get_count(page_collection);
@@ -62,6 +72,9 @@ int main(int argc, char **argv) {
         page_count,
         bbox_collection_get_count(all_items)
     );
+
+    bbox_collection_destroy(all_items);
+    all_items = NULL;
 
     BboxCollection **page_content_collections =
         (BboxCollection **) malloc(sizeof(BboxCollection *)*page_count);
@@ -75,36 +88,69 @@ int main(int argc, char **argv) {
         goto PageDocumentsAllocFailed;
     }
 
-    for (unsigned int i=0; i < page_count; i++) {
-        BboxItem const * page_item = bbox_collection_getc(page_collection, i);
+    unsigned int skiped_count = 0;
+    for (unsigned int i = 0; i + skiped_count < page_count; i++) {
+        unsigned int equivalent_page_count = 1;
+        BboxItem const * page_item = \
+            bbox_collection_getc(page_collection, i + skiped_count);
+        BboxItem const * next_page_item = bbox_collection_getc(
+            page_collection,
+            i + skiped_count + equivalent_page_count
+        );
+
+        while (
+            next_page_item
+            && bbox_collection_cmp(page_item, next_page_item) == 0
+        ) {
+            equivalent_page_count++;
+            next_page_item = bbox_collection_getc(
+                page_collection,
+                i + skiped_count + equivalent_page_count
+            );
+        }
+
         page_content_collections[i] = \
-            bbox_collection_filter_intersecting(all_items, page_item);
+            bbox_collection_filter_intersecting(not_page_collection, page_item);
         if (!page_content_collections[i]) {
             continue;
         }
 
         if (props.page.include_containers) {
-            bbox_collection_append(
-                page_content_collections[i],
-                page_item->id,
-                page_item->bbox
-            );
+            for (unsigned int j = 0; j < equivalent_page_count; j++) {
+                BboxItem const * page_item =
+                    bbox_collection_getc(page_collection, i + skiped_count + j);
+
+                bbox_collection_append(
+                    page_content_collections[i],
+                    page_item->id,
+                    page_item->bbox
+                );
+            }
         }
 
         printf(
-            "For page %d we have %d elements.\n",
+            "For page %d we have %d elements.",
             i+1,
             bbox_collection_get_count(page_content_collections[i])
         );
+        if (equivalent_page_count > 1) {
+            printf(
+                " %d equivalent page containers have been found and merged.",
+                equivalent_page_count
+            );
+        }
+        printf("\n");
 
         page_docs[i] = bbox_svg_doc_make_from_subset(
             src_doc,
             page_content_collections[i]
         );
         bbox_svg_doc_set_viewbox(page_docs[i], page_item->bbox);
+
+        skiped_count += equivalent_page_count -1;
     }
 
-    for (unsigned int i=0; i < page_count; i++) {
+    for (unsigned int i=0; i + skiped_count < page_count; i++) {
         char filename[128];
         snprintf(
             filename,
@@ -120,17 +166,21 @@ int main(int argc, char **argv) {
 
     free(page_docs);
     free(page_content_collections);
+    bbox_collection_destroy(not_page_collection);
     bbox_collection_destroy(page_collection);
-    bbox_collection_destroy(all_items);
     bbox_svg_doc_destroy(src_doc);
     bbox_clean_up();
     return 0;
 PageDocumentsAllocFailed:
     free(page_content_collections);
 PageContentCollectionAllocFailed:
+    bbox_collection_destroy(not_page_collection);
+Filtered2CollectionMakeFailed:
     bbox_collection_destroy(page_collection);
 FilteredCollectionMakeFailed:
-    bbox_collection_destroy(all_items);
+    if (all_items) {
+        bbox_collection_destroy(all_items);
+    }
 CollectionMakeFailed:
     bbox_svg_doc_destroy(src_doc);
     bbox_clean_up();
@@ -166,4 +216,3 @@ int bbox_collection_cmp(BboxItem const *a, BboxItem const *b) {
 
     return a->bbox.tl.x - b->bbox.tl.x;
 };
-

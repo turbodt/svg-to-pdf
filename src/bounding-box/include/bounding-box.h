@@ -40,6 +40,11 @@ BboxCollection *bbox_collection_filter_by_dimensions(
     Size2D target_size,
     float tolerance
 );
+BboxCollection *bbox_collection_filter_by_dimensions_not(
+    BboxCollection const *collection,
+    Size2D target_size,
+    float tolerance
+);
 BboxCollection *bbox_collection_filter_intersecting(
     BboxCollection const *collection,
     BboxItem const *item
