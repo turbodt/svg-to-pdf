@@ -108,8 +108,9 @@ int ensure_capacity(Impl *impl, unsigned int target_capacity) {
     unsigned int new_capacity;
     if (impl->capacity == 0) {
         new_capacity = 8;
-    } else {
-        new_capacity = 2*impl->capacity;
+    }
+    while (new_capacity > 8 && new_capacity >= 2*target_capacity) {
+        new_capacity /= 2;
     }
     while (new_capacity < target_capacity) {
         new_capacity *= 2;
