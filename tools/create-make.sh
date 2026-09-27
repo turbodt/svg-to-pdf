@@ -12,7 +12,7 @@ error() {
 }
 
 check_commands() {
-    for cmd in inkscape pdfunite; do
+    for cmd in pdfunite; do
         command -v "$cmd" >/dev/null 2>&1 || error "'$cmd' command not found. Please install it."
     done
 }
@@ -46,33 +46,16 @@ split_svg() {
         error "./bin/main not found or not executable."
     fi
 
-    echo "Splitting SVG into pages..."
-    ./bin/main "$SVG_FILE" "$PAGES_DIR" $@
+    echo "Splitting SVG into PDF pages..."
+    ./bin/main "$SVG_FILE" "$PAGES_DIR" --pdf "$@"
 }
 
 count_pages() {
-    PAGE_COUNT=$(ls "$PAGES_DIR"/page-*.svg 2>/dev/null | wc -l | tr -d ' ')
+    PAGE_COUNT=$(ls "$PAGES_DIR"/page-*.pdf 2>/dev/null | wc -l | tr -d ' ')
     if [ "$PAGE_COUNT" -eq 0 ]; then
-        error "No page-*.svg files found in $PAGES_DIR."
+        error "No page-*.pdf files found in $PAGES_DIR."
     fi
     echo "$PAGE_COUNT"
-}
-
-convert_pages() {
-    echo "Converting $PAGE_COUNT pages to PDF..."
-    i=1
-    while [ $i -le $PAGE_COUNT ]; do
-        PAGE_SVG=$(printf "$PAGES_DIR/page-%05i.svg" $i)
-        PAGE_PDF=$(printf "$PAGES_DIR/page-%05i.pdf" $i)
-        if [ -f "$PAGE_SVG" ]; then
-            inkscape "$PAGE_SVG" --actions="export-type:pdf;export-filename:$PAGE_PDF;export-do" || {
-                echo "Warning: failed to convert $PAGE_SVG"
-            }
-        else
-            echo "Warning: $PAGE_SVG not found, skipping."
-        fi
-        i=$((i+1))
-    done
 }
 
 merge_pdfs() {
@@ -93,5 +76,4 @@ shift;
 prepare_paths
 split_svg "$@"
 PAGE_COUNT=$(count_pages)
-convert_pages
 merge_pdfs

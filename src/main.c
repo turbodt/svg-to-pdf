@@ -3,6 +3,7 @@
 #include <errno.h>
 #include <geometry.h>
 #include <bounding-box.h>
+#include <pdf-renderer.h>
 #include "./app_props.h"
 
 
@@ -162,11 +163,15 @@ int main(int argc, char **argv) {
         snprintf(
             filename,
             sizeof(filename),
-            "%s/page-%05i.svg",
+            props.output.pdf ? "%s/page-%05i.pdf" : "%s/page-%05i.svg",
             props.output.dirname,
             i+1
         );
-        bbox_svg_doc_save_file(page_docs[i], filename);
+        if (props.output.pdf) {
+            pdf_render_svg_doc(bbox_svg_doc_get_xml_doc(page_docs[i]), filename);
+        } else {
+            bbox_svg_doc_save_file(page_docs[i], filename);
+        }
         bbox_svg_doc_destroy(page_docs[i]);
         bbox_collection_destroy(page_content_collections[i]);
     }

@@ -19,6 +19,7 @@ typedef struct {
     struct {
         char file_template[128];
         char const *dirname;
+        int pdf : 1;
     } output;
 } AppProps;
 
