@@ -158,7 +158,7 @@ int main(int argc, char **argv) {
     }
 
     for (unsigned int i=0; i + skiped_count < page_count; i++) {
-        char filename[128];
+        char filename[256];
         snprintf(
             filename,
             sizeof(filename),
