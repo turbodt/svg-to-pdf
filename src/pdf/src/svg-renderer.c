@@ -88,9 +88,11 @@ int pdf_render_svg_doc_to_page(
     PdfBuf content = {0};
     pdf_buf_printf(
         &content,
-        "q\n0 0 %.6f %.6f re W n\n",
-        state.page_width,
-        state.page_height
+        "q\n%.6f %.6f %.6f %.6f re W n\n",
+        state.offset_x,
+        state.offset_y,
+        state.viewbox.size.width * state.scale,
+        state.viewbox.size.height * state.scale
     );
     render_node(root->children, &content, &state, doc);
     pdf_buf_printf(&content, "Q\n");
