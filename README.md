@@ -30,3 +30,22 @@ output argument is a directory for `page-*.svg` files:
 PDF page size can also be set explicitly with `--pdf-width` and
 `--pdf-height`. Supported named sizes are `a3`, `a4`, `a5`, `letter`, and
 `legal`, each with `-portrait` or `-landscape`.
+
+## WASM and TypeScript
+
+Build the browser WASM module:
+
+```sh
+WASI_SDK_PATH=/path/to/wasi-sdk make wasm
+```
+
+Build and test the TypeScript package:
+
+```sh
+npm install
+npm run build --workspace packages/svg-to-pdf
+npm run test --workspace packages/svg-to-pdf
+```
+
+The package is `@zanny/svg-to-pdf` and exposes PDF conversion plus single/all
+SVG page extraction from browser code.

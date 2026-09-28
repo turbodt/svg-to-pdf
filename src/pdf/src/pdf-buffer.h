@@ -13,6 +13,7 @@ typedef struct {
 
 
 int pdf_buf_printf(PdfBuf *buf, char const *fmt, ...);
+int pdf_buf_write(PdfBuf *buf, void const *data, size_t len);
 void pdf_buf_free(PdfBuf *buf);
 
 

@@ -78,6 +78,9 @@ tests:
 		EXTERNAL_INCLUDES="$(INCLUDES)" \
 		EXTERNAL_LIBRARIES="$(LIBRARIES)"
 
+wasm:
+	$(MAKE) -C ./wasm MAIN_DIR=$(realpath ./)
+
 clean:
 	$(MAKE) clean -C ./tests
 	$(MAKE) clean -C $(SRC_DIR)/bounding-box
@@ -86,4 +89,4 @@ clean:
 	$(MAKE) clean -C $(SRC_DIR)/geometry
 	rm -rf $(OBJ_DIR) $(TARGET)
 
-.PHONY: all clean tests run-tests
+.PHONY: all clean tests run-tests wasm
