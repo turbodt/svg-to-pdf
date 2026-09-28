@@ -12,11 +12,13 @@ EXTERNAL_LIBRARIES = \
 INCLUDES = $(EXTERNAL_INCLUDES) \
 	-I$(SRC_DIR)/geometry/include \
 	-I$(SRC_DIR)/svg/include \
+	-I$(SRC_DIR)/pdf/include \
 	-I$(SRC_DIR)/bounding-box/include \
 	-I$(SRC_DIR) \
 
 LIBRARIES = \
 	-L$(SRC_DIR)/bounding-box/lib -lbounding-box \
+	-L$(SRC_DIR)/pdf/lib -lpdf-renderer \
 	-L$(SRC_DIR)/svg/lib -lcustom-svg \
 	-L$(SRC_DIR)/geometry/lib -lgeometry-2d \
 	$(EXTERNAL_LIBRARIES)
@@ -57,6 +59,9 @@ submodules:
 	$(MAKE) -C $(SRC_DIR)/svg \
 		MAIN_DIR=$(realpath ./) \
 		EXTERNAL_INCLUDES="$(EXTERNAL_INCLUDES)"
+	$(MAKE) -C $(SRC_DIR)/pdf \
+		MAIN_DIR=$(realpath ./) \
+		EXTERNAL_INCLUDES="$(EXTERNAL_INCLUDES)"
 	$(MAKE) -C $(SRC_DIR)/bounding-box \
 		MAIN_DIR=$(realpath ./) \
 		EXTERNAL_INCLUDES="$(EXTERNAL_INCLUDES)"
@@ -76,6 +81,7 @@ tests:
 clean:
 	$(MAKE) clean -C ./tests
 	$(MAKE) clean -C $(SRC_DIR)/bounding-box
+	$(MAKE) clean -C $(SRC_DIR)/pdf
 	$(MAKE) clean -C $(SRC_DIR)/svg
 	$(MAKE) clean -C $(SRC_DIR)/geometry
 	rm -rf $(OBJ_DIR) $(TARGET)

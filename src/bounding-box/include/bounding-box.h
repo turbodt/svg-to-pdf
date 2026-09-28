@@ -4,6 +4,7 @@
 
 #include <geometry.h>
 #include <custom-svg.h> // for bbox computations
+#include <libxml/tree.h>
 
 
 // Collection
@@ -64,6 +65,7 @@ SvgDocument * bbox_svg_doc_make_from_subset(
     BboxCollection const *to_keep
 );
 void bbox_svg_doc_destroy(SvgDocument *doc);
+xmlDoc * bbox_svg_doc_get_xml_doc(SvgDocument *doc);
 BboxCollection * bbox_collection_make_from_doc(SvgDocument *doc);
 void bbox_svg_doc_save_file(SvgDocument *doc, char const *filename);
 void bbox_svg_doc_set_viewbox(SvgDocument *doc, Box2D);

@@ -28,6 +28,11 @@ inline void bbox_svg_doc_destroy(SvgDocument *doc) {
 };
 
 
+inline xmlDoc * bbox_svg_doc_get_xml_doc(SvgDocument *doc) {
+    return &doc->xmlDoc;
+};
+
+
 BboxCollection * bbox_collection_make_from_doc(SvgDocument *doc) {
     xmlNode *root = xmlDocGetRootElement(&doc->xmlDoc);
     BboxCollection *collection = bbox_collection_make();

@@ -4,7 +4,7 @@
 #include <math.h>
 
 
-#define DEG_TO_RAD(deg) (double)(M_PI * (deg) / 108)
+#define DEG_TO_RAD(deg) (double)(M_PI * (deg) / 180)
 
 
 void svg_transform_perform_operation(Transform *t, const char *svg) {

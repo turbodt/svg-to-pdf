@@ -1,8 +1,10 @@
 #include <stdlib.h>
 #include <stdio.h>
 #include <errno.h>
+#include <locale.h>
 #include <geometry.h>
 #include <bounding-box.h>
+#include <pdf-renderer.h>
 #include "./app_props.h"
 
 
@@ -30,6 +32,8 @@ AppProps props = {
 
 
 int main(int argc, char **argv) {
+    setlocale(LC_NUMERIC, "C");
+
     if (app_parse_props(argc, argv, &props)) {
         app_print_usage(stderr, argv[0]);
         goto InvalidArgs;
@@ -79,18 +83,19 @@ int main(int argc, char **argv) {
     all_items = NULL;
 
     BboxCollection **page_content_collections =
-        (BboxCollection **) malloc(sizeof(BboxCollection *)*page_count);
+        (BboxCollection **) calloc(page_count, sizeof(BboxCollection *));
     if (!page_content_collections) {
         goto PageContentCollectionAllocFailed;
     }
 
     SvgDocument **page_docs =
-        (SvgDocument **) malloc(sizeof(SvgDocument *)*page_count);
+        (SvgDocument **) calloc(page_count, sizeof(SvgDocument *));
     if (!page_docs) {
         goto PageDocumentsAllocFailed;
     }
 
     unsigned int skiped_count = 0;
+    unsigned int output_page_count = 0;
     for (unsigned int i = 0; i + skiped_count < page_count; i++) {
         unsigned int equivalent_page_count = 1;
         BboxItem const * page_item = \
@@ -115,8 +120,9 @@ int main(int argc, char **argv) {
         page_content_collections[i] = \
             bbox_collection_filter_intersecting(not_page_collection, page_item);
         if (!page_content_collections[i]) {
-            continue;
+            goto PageBuildFailed;
         }
+        output_page_count = i + 1;
 
         if (props.page.include_containers) {
             for (unsigned int j = 0; j < equivalent_page_count; j++) {
@@ -152,23 +158,72 @@ int main(int argc, char **argv) {
             src_doc,
             page_content_collections[i]
         );
+        if (!page_docs[i]) {
+            goto PageBuildFailed;
+        }
         bbox_svg_doc_set_viewbox(page_docs[i], page_item->bbox);
 
         skiped_count += equivalent_page_count -1;
     }
 
-    for (unsigned int i=0; i + skiped_count < page_count; i++) {
-        char filename[256];
-        snprintf(
-            filename,
-            sizeof(filename),
-            "%s/page-%05i.svg",
-            props.output.dirname,
-            i+1
-        );
-        bbox_svg_doc_save_file(page_docs[i], filename);
-        bbox_svg_doc_destroy(page_docs[i]);
-        bbox_collection_destroy(page_content_collections[i]);
+    if (output_page_count == 0) {
+        goto PageBuildFailed;
+    }
+
+    if (props.output.pdf) {
+        PdfPage *pdf_pages = calloc(output_page_count, sizeof(PdfPage));
+        if (!pdf_pages) {
+            goto PdfPagesAllocFailed;
+        }
+        PdfRenderOptions pdf_options = {
+            .has_page_size = props.output.has_pdf_size,
+            .page_size = props.output.pdf_size,
+        };
+        for (unsigned int i = 0; i < output_page_count; i++) {
+            if (pdf_render_svg_doc_to_page(
+                bbox_svg_doc_get_xml_doc(page_docs[i]),
+                &pdf_options,
+                &pdf_pages[i]
+            )) {
+                for (unsigned int j = 0; j <= i; j++) {
+                    pdf_page_destroy(&pdf_pages[j]);
+                }
+                free(pdf_pages);
+                goto PdfPagesAllocFailed;
+            }
+        }
+        if (pdf_write_pages(props.output.path, pdf_pages, output_page_count)) {
+            for (unsigned int i = 0; i < output_page_count; i++) {
+                pdf_page_destroy(&pdf_pages[i]);
+            }
+            free(pdf_pages);
+            goto PdfPagesAllocFailed;
+        }
+        for (unsigned int i = 0; i < output_page_count; i++) {
+            pdf_page_destroy(&pdf_pages[i]);
+        }
+        free(pdf_pages);
+    } else {
+        for (unsigned int i=0; i < output_page_count; i++) {
+            char filename[256];
+            snprintf(
+                filename,
+                sizeof(filename),
+                "%s/page-%05i.svg",
+                props.output.path,
+                i+1
+            );
+            bbox_svg_doc_save_file(page_docs[i], filename);
+        }
+    }
+
+    for (unsigned int i=0; i < output_page_count; i++) {
+        if (page_docs[i]) {
+            bbox_svg_doc_destroy(page_docs[i]);
+        }
+        if (page_content_collections[i]) {
+            bbox_collection_destroy(page_content_collections[i]);
+        }
     }
 
     free(page_docs);
@@ -178,6 +233,23 @@ int main(int argc, char **argv) {
     bbox_svg_doc_destroy(src_doc);
     bbox_clean_up();
     return 0;
+PdfPagesAllocFailed:
+PageBuildFailed:
+    for (unsigned int i=0; i < output_page_count; i++) {
+        if (page_docs[i]) {
+            bbox_svg_doc_destroy(page_docs[i]);
+        }
+        if (page_content_collections[i]) {
+            bbox_collection_destroy(page_content_collections[i]);
+        }
+    }
+    free(page_docs);
+    free(page_content_collections);
+    bbox_collection_destroy(not_page_collection);
+    bbox_collection_destroy(page_collection);
+    bbox_svg_doc_destroy(src_doc);
+    bbox_clean_up();
+    return 1;
 PageDocumentsAllocFailed:
     free(page_content_collections);
 PageContentCollectionAllocFailed:
