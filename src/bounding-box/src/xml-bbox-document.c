@@ -1,4 +1,5 @@
 #include "./shared.h"
+#include <libxml/parser.h>
 #include <libxml/tree.h>
 
 
@@ -16,6 +17,21 @@ void bbox_clean_up(void) {
 
 inline SvgDocument * bbox_svg_doc_make_from_file(char const *filename) {
     SvgDocument *impl = (SvgDocument *) xmlReadFile(filename, NULL, 0);
+    if (impl) {
+        need_clean_up = 1;
+    }
+    return impl;
+};
+
+
+SvgDocument * bbox_svg_doc_make_from_memory(char const *data, unsigned int len) {
+    SvgDocument *impl = (SvgDocument *) xmlReadMemory(
+        data,
+        (int) len,
+        "input.svg",
+        NULL,
+        0
+    );
     if (impl) {
         need_clean_up = 1;
     }

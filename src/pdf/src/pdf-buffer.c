@@ -2,6 +2,25 @@
 #include <stdarg.h>
 #include <stdio.h>
 #include <stdlib.h>
+#include <string.h>
+
+
+static int pdf_buf_reserve(PdfBuf *buf, size_t target) {
+    if (target <= buf->cap) {
+        return 0;
+    }
+    size_t cap = buf->cap ? buf->cap : 4096;
+    while (cap < target) {
+        cap *= 2;
+    }
+    char *data = realloc(buf->data, cap);
+    if (!data) {
+        return 1;
+    }
+    buf->data = data;
+    buf->cap = cap;
+    return 0;
+}
 
 
 int pdf_buf_printf(PdfBuf *buf, char const *fmt, ...) {
@@ -16,22 +35,24 @@ int pdf_buf_printf(PdfBuf *buf, char const *fmt, ...) {
         return 1;
     }
     size_t target = buf->len + (size_t)needed + 1;
-    if (target > buf->cap) {
-        size_t cap = buf->cap ? buf->cap : 4096;
-        while (cap < target) {
-            cap *= 2;
-        }
-        char *data = realloc(buf->data, cap);
-        if (!data) {
-            va_end(args);
-            return 1;
-        }
-        buf->data = data;
-        buf->cap = cap;
+    if (pdf_buf_reserve(buf, target)) {
+        va_end(args);
+        return 1;
     }
     vsnprintf(buf->data + buf->len, buf->cap - buf->len, fmt, args);
     buf->len += (size_t)needed;
     va_end(args);
+    return 0;
+}
+
+
+int pdf_buf_write(PdfBuf *buf, void const *data, size_t len) {
+    size_t target = buf->len + len;
+    if (pdf_buf_reserve(buf, target)) {
+        return 1;
+    }
+    memcpy(buf->data + buf->len, data, len);
+    buf->len = target;
     return 0;
 }
 

@@ -37,6 +37,12 @@ int pdf_write_pages(
     PdfPage const *pages,
     unsigned int page_count
 );
+int pdf_write_pages_to_memory(
+    PdfPage const *pages,
+    unsigned int page_count,
+    void **out_data,
+    unsigned long *out_len
+);
 
 
 #endif

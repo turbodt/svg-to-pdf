@@ -60,6 +60,10 @@ typedef struct SvgDocument SvgDocument;
 
 void bbox_clean_up(void);
 SvgDocument * bbox_svg_doc_make_from_file(char const *filename);
+SvgDocument * bbox_svg_doc_make_from_memory(
+    char const *data,
+    unsigned int len
+);
 SvgDocument * bbox_svg_doc_make_from_subset(
     SvgDocument *,
     BboxCollection const *to_keep
