@@ -12,11 +12,30 @@ typedef struct {
 } PdfRenderOptions;
 
 
+typedef struct {
+    void *data;
+    unsigned long len;
+    double width;
+    double height;
+} PdfPage;
+
+
 int pdf_render_svg_doc(xmlDoc *doc, char const *filename);
 int pdf_render_svg_doc_with_options(
     xmlDoc *doc,
     char const *filename,
     PdfRenderOptions const *options
+);
+int pdf_render_svg_doc_to_page(
+    xmlDoc *doc,
+    PdfRenderOptions const *options,
+    PdfPage *out
+);
+void pdf_page_destroy(PdfPage *page);
+int pdf_write_pages(
+    char const *filename,
+    PdfPage const *pages,
+    unsigned int page_count
 );
 
 

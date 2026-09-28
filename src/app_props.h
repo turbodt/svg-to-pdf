@@ -18,7 +18,7 @@ typedef struct {
     } input;
     struct {
         char file_template[128];
-        char const *dirname;
+        char const *path;
         int pdf : 1;
         int has_pdf_size : 1;
         Size2D pdf_size;

@@ -2,6 +2,7 @@
 #include "./pdf-writer.h"
 #include "./shared.h"
 #include <stdio.h>
+#include <stdlib.h>
 
 
 static void render_node(
@@ -21,6 +22,22 @@ int pdf_render_svg_doc_with_options(
     xmlDoc *doc,
     char const *filename,
     PdfRenderOptions const *options
+) {
+    PdfPage page = {0};
+    int err = pdf_render_svg_doc_to_page(doc, options, &page);
+    if (err) {
+        return err;
+    }
+    err = pdf_write_pages(filename, &page, 1);
+    pdf_page_destroy(&page);
+    return err;
+}
+
+
+int pdf_render_svg_doc_to_page(
+    xmlDoc *doc,
+    PdfRenderOptions const *options,
+    PdfPage *out
 ) {
     xmlNode *root = xmlDocGetRootElement(doc);
     if (!root) {
@@ -78,15 +95,20 @@ int pdf_render_svg_doc_with_options(
     render_node(root->children, &content, &state, doc);
     pdf_buf_printf(&content, "Q\n");
 
-    int err = pdf_write_file(
-        filename,
-        &content,
-        state.page_width,
-        state.page_height
-    );
-    pdf_buf_free(&content);
+    *out = (PdfPage){
+        .data = content.data,
+        .len = content.len,
+        .width = state.page_width,
+        .height = state.page_height,
+    };
     geo_transform_destroy(state.transform);
-    return err;
+    return 0;
+}
+
+
+void pdf_page_destroy(PdfPage *page) {
+    free(page->data);
+    *page = (PdfPage){0};
 }
 
 

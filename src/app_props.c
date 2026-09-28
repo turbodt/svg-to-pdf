@@ -8,13 +8,8 @@ static int parse_pdf_size(char const *arg, Size2D *out);
 
 
 int app_parse_props(int argc, char **argv, AppProps *props) {
-    if (argc < 3) {
-        return 1;
-    }
-    props->input.filename = argv[1];
-    props->output.dirname = argv[2];
-
-    for (int i = 3; i < argc; i++) {
+    unsigned int positional_count = 0;
+    for (int i = 1; i < argc; i++) {
         char const*arg = argv[i];
         if (
             strcmp(arg, "-h") == 0
@@ -78,9 +73,21 @@ int app_parse_props(int argc, char **argv, AppProps *props) {
                 return 1;
             }
             props->output.has_pdf_size = 1;
-        } else {
+        } else if (arg[0] == '-') {
             return 1;
+        } else {
+            positional_count++;
+            if (positional_count == 1) {
+                props->input.filename = arg;
+            } else if (positional_count == 2) {
+                props->output.path = arg;
+            } else {
+                return 1;
+            }
         }
+    }
+    if (positional_count != 2) {
+        return 1;
     }
     if (
         props->output.has_pdf_size
@@ -93,7 +100,9 @@ int app_parse_props(int argc, char **argv, AppProps *props) {
 
 
 void app_print_usage(FILE *out, char const *command) {
-    fprintf(out, "Usage: %s file.svg out_dirname\n", command);
+    fprintf(out, "Usage: %s [OPTIONS] file.svg output\n", command);
+    fprintf(out, "\nIn SVG mode, output is a directory for page-*.svg files.\n");
+    fprintf(out, "In PDF mode, output is the final PDF filename.\n");
     fprintf(out, "\nArgumens:\n");
     fprintf(out, "\n\t-h, --height %%d\n");
     fprintf(out, "\n\t-w, --width %%d\n");
