@@ -13,6 +13,15 @@ static void render_node(
 
 
 int pdf_render_svg_doc(xmlDoc *doc, char const *filename) {
+    return pdf_render_svg_doc_with_options(doc, filename, NULL);
+}
+
+
+int pdf_render_svg_doc_with_options(
+    xmlDoc *doc,
+    char const *filename,
+    PdfRenderOptions const *options
+) {
     xmlNode *root = xmlDocGetRootElement(doc);
     if (!root) {
         return 1;
@@ -44,13 +53,21 @@ int pdf_render_svg_doc(xmlDoc *doc, char const *filename) {
         );
         xmlFree(viewbox);
     }
-    state.page_width = state.viewbox.size.width;
-    state.page_height = state.viewbox.size.height;
+    state.page_width = options && options->has_page_size
+        ? options->page_size.width
+        : state.viewbox.size.width;
+    state.page_height = options && options->has_page_size
+        ? options->page_size.height
+        : state.viewbox.size.height;
     if (state.page_width <= 0 || state.page_height <= 0) {
         geo_transform_destroy(state.transform);
         return 1;
     }
-
+    double scale_x = state.page_width / state.viewbox.size.width;
+    double scale_y = state.page_height / state.viewbox.size.height;
+    state.scale = scale_x < scale_y ? scale_x : scale_y;
+    state.offset_x = (state.page_width - state.viewbox.size.width * state.scale) / 2;
+    state.offset_y = (state.page_height - state.viewbox.size.height * state.scale) / 2;
     PdfBuf content = {0};
     pdf_buf_printf(
         &content,

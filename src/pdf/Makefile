@@ -41,7 +41,7 @@ shared: $(OBJS)
 	mkdir -p $(LIB_DIR)
 	$(CC) -shared -o $(SHARED_LIB) $(OBJS)
 
-$(OBJ_DIR)/%.o: $(SRC_DIR)/%.c
+$(OBJ_DIR)/%.o: $(SRC_DIR)/%.c $(wildcard $(SRC_DIR)/*.h) $(wildcard ./include/*.h)
 	mkdir -p $(@D)
 	$(CC) $(CFLAGS) $(INCLUDES) -c $< -o $@
 

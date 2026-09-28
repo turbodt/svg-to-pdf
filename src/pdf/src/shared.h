@@ -25,6 +25,9 @@ typedef struct {
     Box2D viewbox;
     double page_width;
     double page_height;
+    double scale;
+    double offset_x;
+    double offset_y;
 } RenderState;
 
 

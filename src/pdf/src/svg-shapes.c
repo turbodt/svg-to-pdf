@@ -91,7 +91,7 @@ void render_text(xmlNode *node, PdfBuf *out, RenderState const *state) {
         state->fill.r,
         state->fill.g,
         state->fill.b,
-        font_size,
+        font_size * state->scale,
         p.x,
         p.y
     );
@@ -116,7 +116,7 @@ void emit_paint(PdfBuf *out, RenderState const *state) {
             state->stroke.r,
             state->stroke.g,
             state->stroke.b,
-            state->stroke_width,
+            state->stroke_width * state->scale,
             state->linecap
         );
         if (state->dash[0]) {
@@ -143,8 +143,10 @@ void emit_point(PdfBuf *out, RenderState const *state, Point2D p) {
 
 Point2D map_point(RenderState const *state, Point2D p) {
     return (Point2D){
-        .x = p.x - state->viewbox.tl.x,
-        .y = state->viewbox.tl.y + state->viewbox.size.height - p.y,
+        .x = state->offset_x + (p.x - state->viewbox.tl.x) * state->scale,
+        .y = state->offset_y + (
+            state->viewbox.tl.y + state->viewbox.size.height - p.y
+        ) * state->scale,
     };
 }
 

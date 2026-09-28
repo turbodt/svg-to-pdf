@@ -20,6 +20,8 @@ typedef struct {
         char file_template[128];
         char const *dirname;
         int pdf : 1;
+        int has_pdf_size : 1;
+        Size2D pdf_size;
     } output;
 } AppProps;
 

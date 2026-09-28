@@ -1,6 +1,7 @@
 #include <stdlib.h>
 #include <stdio.h>
 #include <errno.h>
+#include <locale.h>
 #include <geometry.h>
 #include <bounding-box.h>
 #include <pdf-renderer.h>
@@ -31,6 +32,8 @@ AppProps props = {
 
 
 int main(int argc, char **argv) {
+    setlocale(LC_NUMERIC, "C");
+
     if (app_parse_props(argc, argv, &props)) {
         app_print_usage(stderr, argv[0]);
         goto InvalidArgs;
@@ -168,7 +171,15 @@ int main(int argc, char **argv) {
             i+1
         );
         if (props.output.pdf) {
-            pdf_render_svg_doc(bbox_svg_doc_get_xml_doc(page_docs[i]), filename);
+            PdfRenderOptions pdf_options = {
+                .has_page_size = props.output.has_pdf_size,
+                .page_size = props.output.pdf_size,
+            };
+            pdf_render_svg_doc_with_options(
+                bbox_svg_doc_get_xml_doc(page_docs[i]),
+                filename,
+                &pdf_options
+            );
         } else {
             bbox_svg_doc_save_file(page_docs[i], filename);
         }

@@ -41,6 +41,10 @@ prepare_paths() {
     mkdir -p "$PAGES_DIR"
 }
 
+clean_pages() {
+    rm -f "$PAGES_DIR"/page-*.pdf "$PAGES_DIR"/page-*.svg
+}
+
 split_svg() {
     if [ ! -x "./bin/main" ]; then
         error "./bin/main not found or not executable."
@@ -74,6 +78,7 @@ check_commands
 check_input "$@"
 shift;
 prepare_paths
+clean_pages
 split_svg "$@"
 PAGE_COUNT=$(count_pages)
 merge_pdfs
