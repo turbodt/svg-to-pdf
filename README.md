@@ -49,3 +49,19 @@ npm run test --workspace packages/svg-to-pdf
 
 The package is `@zanny/svg-to-pdf` and exposes PDF conversion plus single/all
 SVG page extraction from browser code.
+
+## License
+
+This project is licensed under the GNU Affero General Public
+License v3.0 or later (AGPL-3.0-or-later).
+See the [LICENSE](LICENSE) file for details.
+
+## Dependencies
+
+This project uses libxml2, libc and libm.
+
+- libxml2 is distributed under the MIT License.
+- libc and libm are provided by the target system or toolchain.
+
+Please refer to the respective upstream projects and toolchain
+documentation for their licensing terms.
