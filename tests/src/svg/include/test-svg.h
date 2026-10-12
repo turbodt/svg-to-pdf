@@ -1,0 +1,14 @@
+#ifndef TESTS_SVG_H
+#define TESTS_SVG_H
+
+
+#include <test-shared.h>
+
+
+TestSuite const * test_suite_svg_get_1(void);
+TestSuite const * test_suite_svg_get_2(void);
+TestSuite const * test_suite_svg_get_3(void);
+TestSuite const * test_suite_svg_get_4(void);
+
+
+#endif
