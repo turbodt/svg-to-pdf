@@ -873,6 +873,61 @@ static int test_044(void) {
 }
 
 
+static int test_045(void) {
+    SVGPath * path = svg_path_make_from_string("X 5 5");
+    ASSERT_NULL(path, "Expected path to be rejected");
+
+    path = svg_path_make_from_string("M 0 0 L 1 1 X");
+    ASSERT_NULL(path, "Expected path to be rejected");
+
+    path = svg_path_make_from_string("M 0 0 X");
+    ASSERT_NULL(path, "Expected path to be rejected");
+
+    return 0;
+}
+
+
+static int test_046(void) {
+    SVGPath * path = svg_path_make_from_string("5 5");
+    ASSERT_NULL(path, "Expected path to be rejected");
+
+    path = svg_path_make_from_string("M 0 0 Z 5 5");
+    ASSERT_NULL(path, "Expected path to be rejected");
+
+    return 0;
+}
+
+
+static int test_047(void) {
+    SVGPath * path = svg_path_make_from_string("M 0 0 Z X");
+    ASSERT_NULL(path, "Expected path to be rejected");
+
+    path = svg_path_make_from_string("M 0 0 Z z 5 5");
+    ASSERT_NULL(path, "Expected path to be rejected");
+
+    return 0;
+}
+
+
+static int test_048(void) {
+    SVGPathCommand const *command = NULL;
+    SVGPath * path = svg_path_make_from_string("M 0 0 Z L 1 1");
+    ASSERT_NOT_NULL(path, "Expected path to be parsed");
+    ASSERT_EQ(svg_path_command_count(path), 2, "Unexpected command count");
+
+    command = svg_path_get_command(path, 0);
+    ASSERT_NOT_NULL(command, "Expected first command to be not NULL");
+    ASSERT_PATH_IS_LINE(*command, 0,0, 0,0);
+
+    command = svg_path_get_command(path, 1);
+    ASSERT_NOT_NULL(command, "Expected second command to be not NULL");
+    ASSERT_PATH_IS_LINE(*command, 0,0, 1,1);
+
+    svg_path_destroy(path);
+    return 0;
+}
+
+
 static Test tests[] = {
     {.name="Basic parsing 001", .call=&test_001},
     {.name="Basic parsing 002", .call=&test_002},
@@ -918,6 +973,10 @@ static Test tests[] = {
     {.name="Newline between coordinates 042", .call=&test_042},
     {.name="Newline separated arc 043", .call=&test_043},
     {.name="Leading whitespace 044", .call=&test_044},
+    {.name="Invalid path data 045", .call=&test_045},
+    {.name="Number without command 046", .call=&test_046},
+    {.name="Invalid data after closepath 047", .call=&test_047},
+    {.name="Commands after closepath 048", .call=&test_048},
     {.name="Real case 101", .call=&test_101},
     {.name="", .call=NULL},
 };

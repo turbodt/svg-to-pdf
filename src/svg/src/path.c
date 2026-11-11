@@ -99,6 +99,20 @@ SVGPath *svg_path_make_from_string(char const *p) {
                 last_cmd_char = *p;
                 p++;
             break;
+            default: {
+                /* Only a command letter or a number can follow here;
+                 * anything else is invalid path data. */
+                double peek;
+                if (svg_double_parse(p, &peek) == p) {
+                    goto SVG_PATH_MAKE_PARSING_FAILED;
+                }
+                /* Numbers repeat the previous command, but Z takes
+                 * no parameters. The initial Z also rejects paths
+                 * that do not start with a command. */
+                if (last_cmd_char == 'Z' || last_cmd_char == 'z') {
+                    goto SVG_PATH_MAKE_PARSING_FAILED;
+                }
+            } break;
         }
         /* Arc commands expand into up to four bezier commands. */
         SVGPathCommand commands[4] = {0};
