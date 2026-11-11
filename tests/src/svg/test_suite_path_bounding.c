@@ -50,10 +50,76 @@ static int test_101(void) {
 }
 
 
+static int test_003(void) {
+    SVGPathCommand const *command = NULL;
+    SVGPath * path = svg_path_make_from_string("M 0 0 C 1 3 3 3 4 0");
+    ASSERT_NOT_NULL(path);
+    ASSERT_EQ(svg_path_command_count(path), 1);
+
+    command = svg_path_get_command(path, 0);
+    ASSERT_NOT_NULL(command);
+    Box2D bbox = svg_path_command_get_bbox(command);
+    ASSERT_BOX_COORDS_EQ(bbox, 0,0, 4,2.25);
+
+    svg_path_destroy(path);
+    return 0;
+}
+
+
+static int test_004(void) {
+    SVGPathCommand const *command = NULL;
+    SVGPath * path = svg_path_make_from_string("M 0 0 C 1 -3 3 -3 4 0");
+    ASSERT_NOT_NULL(path);
+    ASSERT_EQ(svg_path_command_count(path), 1);
+
+    command = svg_path_get_command(path, 0);
+    ASSERT_NOT_NULL(command);
+    Box2D bbox = svg_path_command_get_bbox(command);
+    ASSERT_BOX_COORDS_EQ(bbox, 0,-2.25, 4,0);
+
+    svg_path_destroy(path);
+    return 0;
+}
+
+
+static int test_005(void) {
+    SVGPathCommand const *command = NULL;
+    SVGPath * path = svg_path_make_from_string("M 0 0 C 1 1 3 2 4 3");
+    ASSERT_NOT_NULL(path);
+    ASSERT_EQ(svg_path_command_count(path), 1);
+
+    command = svg_path_get_command(path, 0);
+    ASSERT_NOT_NULL(command);
+    Box2D bbox = svg_path_command_get_bbox(command);
+    ASSERT_BOX_COORDS_EQ(bbox, 0,0, 4,3);
+
+    svg_path_destroy(path);
+    return 0;
+}
+
+
+static int test_102(void) {
+    SVGPath * path = svg_path_make_from_string(
+        "M 200 1700 C 400 300 800 300 1200 1700 S 1600 3100 2200 1700"
+    );
+    ASSERT_NOT_NULL(path);
+
+    Box2D bbox = svg_path_get_bbox(path);
+    ASSERT_BOX_COORDS_EQ(bbox, 200,650, 2200,2750);
+
+    svg_path_destroy(path);
+    return 0;
+}
+
+
 static Test tests[] = {
     {.name="CBezier bounds 001", .call=&test_001},
     {.name="CBezier bounds 002", .call=&test_002},
+    {.name="Degenerate CBezier bounds 003", .call=&test_003},
+    {.name="Degenerate CBezier bounds 004", .call=&test_004},
+    {.name="Degenerate CBezier bounds 005", .call=&test_005},
     {.name="CBezier bounds 101", .call=&test_101},
+    {.name="Degenerate CBezier bounds 102", .call=&test_102},
     {.name="", .call=NULL},
 };
 
