@@ -1,6 +1,7 @@
 #include "./path.h"
 #include "./double_parser.h"
 #include <geometry/transform.h>
+#include <ctype.h>
 #include <math.h>
 #include <stdlib.h>
 #include <string.h>
@@ -66,6 +67,9 @@ SVGPath *svg_path_make_from_string(char const *p) {
     char last_cmd_char = 'Z';
     while (*p) {
         advance_separators(&p);
+        if (!*p) {
+            break;
+        }
         switch (*p) {
             case 'M':case 'm': {
                 last_cmd_char = *p;
@@ -555,7 +559,7 @@ int svg_path_add_command(SVGPath *path, SVGPathCommand const *cmd) {
 
 inline unsigned int advance_separators(char const **p) {
     unsigned int count = 0;
-    while (**p == ' ' || **p == ',') {
+    while (**p == ',' || isspace((unsigned char)**p)) {
         (*p)++;
         count++;
     }
