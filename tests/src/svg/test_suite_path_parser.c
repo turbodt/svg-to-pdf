@@ -159,6 +159,79 @@ static int test_101(void) {
 }
 
 
+static int test_008(void) {
+    SVGPathCommand const *command = NULL;
+    SVGPath * path = svg_path_make_from_string(
+        "M 0 0 C 1 1 3 1 4 0 S 7 -1 8 0"
+    );
+    ASSERT_NOT_NULL(path, "Expected path to be parsed");
+    ASSERT_EQ(svg_path_command_count(path), 2, "Unexpected command count");
+
+    command = svg_path_get_command(path, 0);
+    ASSERT_NOT_NULL(command, "Expected first command to be not NULL");
+    ASSERT_PATH_IS_CBEZIER(*command, 0,0, 1,1, 3,1, 4,0);
+
+    command = svg_path_get_command(path, 1);
+    ASSERT_NOT_NULL(command, "Expected second command to be not NULL");
+    ASSERT_EQ(command->type, SVG_PATH_CMD_CBEZIER, "Unexpected second command type");
+    ASSERT_FLOAT_EQ(command->start.x, 4, "Unexpected second command start x");
+    ASSERT_FLOAT_EQ(command->start.y, 0, "Unexpected second command start y");
+    ASSERT_FLOAT_EQ(command->end.x, 8, "Unexpected second command end x");
+    ASSERT_FLOAT_EQ(command->end.y, 0, "Unexpected second command end y");
+    ASSERT_FLOAT_EQ(command->ctrl[1].x, 7, "Unexpected second command control 2 x");
+    ASSERT_FLOAT_EQ(command->ctrl[1].y, -1, "Unexpected second command control 2 y");
+
+    svg_path_destroy(path);
+    return 0;
+}
+
+
+static int test_009(void) {
+    SVGPathCommand const *command = NULL;
+    SVGPath * path = svg_path_make_from_string(
+        "M 0 0 C 1 1 3 1 4 0 S 7 -1 8 0 10 1 11 0"
+    );
+    ASSERT_NOT_NULL(path, "Expected path to be parsed");
+    ASSERT_EQ(svg_path_command_count(path), 3, "Unexpected command count");
+
+    command = svg_path_get_command(path, 2);
+    ASSERT_NOT_NULL(command, "Expected third command to be not NULL");
+    ASSERT_EQ(command->type, SVG_PATH_CMD_CBEZIER, "Unexpected third command type");
+    ASSERT_FLOAT_EQ(command->start.x, 8, "Unexpected third command start x");
+    ASSERT_FLOAT_EQ(command->start.y, 0, "Unexpected third command start y");
+    ASSERT_FLOAT_EQ(command->end.x, 11, "Unexpected third command end x");
+    ASSERT_FLOAT_EQ(command->end.y, 0, "Unexpected third command end y");
+    ASSERT_FLOAT_EQ(command->ctrl[1].x, 10, "Unexpected third command control 2 x");
+    ASSERT_FLOAT_EQ(command->ctrl[1].y, 1, "Unexpected third command control 2 y");
+
+    svg_path_destroy(path);
+    return 0;
+}
+
+
+static int test_010(void) {
+    SVGPathCommand const *command = NULL;
+    SVGPath * path = svg_path_make_from_string(
+        "M 0 0 C 1 1 3 1 4 0 s 3 -1 4 0"
+    );
+    ASSERT_NOT_NULL(path, "Expected path to be parsed");
+    ASSERT_EQ(svg_path_command_count(path), 2, "Unexpected command count");
+
+    command = svg_path_get_command(path, 1);
+    ASSERT_NOT_NULL(command, "Expected second command to be not NULL");
+    ASSERT_EQ(command->type, SVG_PATH_CMD_CBEZIER, "Unexpected second command type");
+    ASSERT_FLOAT_EQ(command->start.x, 4, "Unexpected second command start x");
+    ASSERT_FLOAT_EQ(command->start.y, 0, "Unexpected second command start y");
+    ASSERT_FLOAT_EQ(command->end.x, 8, "Unexpected second command end x");
+    ASSERT_FLOAT_EQ(command->end.y, 0, "Unexpected second command end y");
+    ASSERT_FLOAT_EQ(command->ctrl[1].x, 7, "Unexpected second command control 2 x");
+    ASSERT_FLOAT_EQ(command->ctrl[1].y, -1, "Unexpected second command control 2 y");
+
+    svg_path_destroy(path);
+    return 0;
+}
+
+
 static Test tests[] = {
     {.name="Basic parsing 001", .call=&test_001},
     {.name="Basic parsing 002", .call=&test_002},
@@ -167,6 +240,9 @@ static Test tests[] = {
     {.name="Multiple M commands 005", .call=&test_005},
     {.name="Relative M commands 006", .call=&test_006},
     {.name="Relative M commands 007", .call=&test_007},
+    {.name="S command parsing 008", .call=&test_008},
+    {.name="S command repetition 009", .call=&test_009},
+    {.name="Relative s command 010", .call=&test_010},
     {.name="Real case 101", .call=&test_101},
     {.name="", .call=NULL},
 };

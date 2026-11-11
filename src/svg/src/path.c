@@ -287,6 +287,7 @@ SVGPathCommand parse_command(
             if (new_ptr == *p) {
                 goto SVG_PATH_PARSING_FAILED;
             }
+            *p = new_ptr;
             command.end.x = coords[2];
             command.end.y = coords[3];
             command.ctrl[1].x = coords[0];
