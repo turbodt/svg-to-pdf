@@ -232,6 +232,236 @@ static int test_010(void) {
 }
 
 
+static int test_011(void) {
+    SVGPathCommand const *command = NULL;
+    SVGPath * path = svg_path_make_from_string("M 0 0 5 5");
+    ASSERT_NOT_NULL(path, "Expected path to be parsed");
+    ASSERT_EQ(svg_path_command_count(path), 1, "Unexpected command count");
+
+    command = svg_path_get_command(path, 0);
+    ASSERT_NOT_NULL(command, "Expected first command to be not NULL");
+    ASSERT_PATH_IS_LINE(*command, 0,0, 5,5);
+
+    svg_path_destroy(path);
+    return 0;
+}
+
+
+static int test_012(void) {
+    SVGPathCommand const *command = NULL;
+    SVGPath * path = svg_path_make_from_string("M 0 0 5 5 10 10");
+    ASSERT_NOT_NULL(path, "Expected path to be parsed");
+    ASSERT_EQ(svg_path_command_count(path), 2, "Unexpected command count");
+
+    command = svg_path_get_command(path, 0);
+    ASSERT_NOT_NULL(command, "Expected first command to be not NULL");
+    ASSERT_PATH_IS_LINE(*command, 0,0, 5,5);
+
+    command = svg_path_get_command(path, 1);
+    ASSERT_NOT_NULL(command, "Expected second command to be not NULL");
+    ASSERT_PATH_IS_LINE(*command, 5,5, 10,10);
+
+    svg_path_destroy(path);
+    return 0;
+}
+
+
+static int test_013(void) {
+    SVGPathCommand const *command = NULL;
+    SVGPath * path = svg_path_make_from_string("m 10 10 5 5");
+    ASSERT_NOT_NULL(path, "Expected path to be parsed");
+    ASSERT_EQ(svg_path_command_count(path), 1, "Unexpected command count");
+
+    command = svg_path_get_command(path, 0);
+    ASSERT_NOT_NULL(command, "Expected first command to be not NULL");
+    ASSERT_PATH_IS_LINE(*command, 10,10, 15,15);
+
+    svg_path_destroy(path);
+    return 0;
+}
+
+
+static int test_014(void) {
+    SVGPathCommand const *command = NULL;
+    SVGPath * path = svg_path_make_from_string("M 0 0 5 5 L 10 10");
+    ASSERT_NOT_NULL(path, "Expected path to be parsed");
+    ASSERT_EQ(svg_path_command_count(path), 2, "Unexpected command count");
+
+    command = svg_path_get_command(path, 0);
+    ASSERT_NOT_NULL(command, "Expected first command to be not NULL");
+    ASSERT_PATH_IS_LINE(*command, 0,0, 5,5);
+
+    command = svg_path_get_command(path, 1);
+    ASSERT_NOT_NULL(command, "Expected second command to be not NULL");
+    ASSERT_PATH_IS_LINE(*command, 5,5, 10,10);
+
+    svg_path_destroy(path);
+    return 0;
+}
+
+
+static int test_015(void) {
+    SVGPathCommand const *command = NULL;
+    SVGPath * path = svg_path_make_from_string(
+        "M 0 0 C 1 1 3 1 4 0 S 7 -1 8 0"
+    );
+    ASSERT_NOT_NULL(path, "Expected path to be parsed");
+    ASSERT_EQ(svg_path_command_count(path), 2, "Unexpected command count");
+
+    command = svg_path_get_command(path, 1);
+    ASSERT_NOT_NULL(command, "Expected second command to be not NULL");
+    ASSERT_PATH_IS_CBEZIER(*command, 4,0, 5,-1, 7,-1, 8,0);
+
+    svg_path_destroy(path);
+    return 0;
+}
+
+
+static int test_016(void) {
+    SVGPathCommand const *command = NULL;
+    SVGPath * path = svg_path_make_from_string(
+        "M 0 0 C 1 1 3 1 4 0 S 6 -2 8 0 S 10 1 11 0"
+    );
+    ASSERT_NOT_NULL(path, "Expected path to be parsed");
+    ASSERT_EQ(svg_path_command_count(path), 3, "Unexpected command count");
+
+    command = svg_path_get_command(path, 2);
+    ASSERT_NOT_NULL(command, "Expected third command to be not NULL");
+    ASSERT_PATH_IS_CBEZIER(*command, 8,0, 10,2, 10,1, 11,0);
+
+    svg_path_destroy(path);
+    return 0;
+}
+
+
+static int test_017(void) {
+    SVGPathCommand const *command = NULL;
+    SVGPath * path = svg_path_make_from_string(
+        "M 0 0 C 1 1 3 1 4 0 L 5 5 S 7 6 8 5"
+    );
+    ASSERT_NOT_NULL(path, "Expected path to be parsed");
+    ASSERT_EQ(svg_path_command_count(path), 3, "Unexpected command count");
+
+    command = svg_path_get_command(path, 2);
+    ASSERT_NOT_NULL(command, "Expected third command to be not NULL");
+    ASSERT_PATH_IS_CBEZIER(*command, 5,5, 5,5, 7,6, 8,5);
+
+    svg_path_destroy(path);
+    return 0;
+}
+
+
+static int test_018(void) {
+    SVGPathCommand const *command = NULL;
+    SVGPath * path = svg_path_make_from_string("M 0 0 Q 1 1 2 0 T 4 -1");
+    ASSERT_NOT_NULL(path, "Expected path to be parsed");
+    ASSERT_EQ(svg_path_command_count(path), 2, "Unexpected command count");
+
+    command = svg_path_get_command(path, 1);
+    ASSERT_NOT_NULL(command, "Expected second command to be not NULL");
+    ASSERT_PATH_IS_QBEZIER(*command, 2,0, 3,-1, 4,-1);
+
+    svg_path_destroy(path);
+    return 0;
+}
+
+
+static int test_019(void) {
+    SVGPathCommand const *command = NULL;
+    SVGPath * path = svg_path_make_from_string(
+        "M 0 0 Q 1 1 2 0 T 4 -1 T 6 1"
+    );
+    ASSERT_NOT_NULL(path, "Expected path to be parsed");
+    ASSERT_EQ(svg_path_command_count(path), 3, "Unexpected command count");
+
+    command = svg_path_get_command(path, 2);
+    ASSERT_NOT_NULL(command, "Expected third command to be not NULL");
+    ASSERT_PATH_IS_QBEZIER(*command, 4,-1, 5,-1, 6,1);
+
+    svg_path_destroy(path);
+    return 0;
+}
+
+
+static int test_020(void) {
+    SVGPathCommand const *command = NULL;
+    SVGPath * path = svg_path_make_from_string(
+        "M 0 0 Q 1 1 2 0 L 3 3 T 5 5"
+    );
+    ASSERT_NOT_NULL(path, "Expected path to be parsed");
+    ASSERT_EQ(svg_path_command_count(path), 3, "Unexpected command count");
+
+    command = svg_path_get_command(path, 2);
+    ASSERT_NOT_NULL(command, "Expected third command to be not NULL");
+    ASSERT_PATH_IS_QBEZIER(*command, 3,3, 3,3, 5,5);
+
+    svg_path_destroy(path);
+    return 0;
+}
+
+
+static int test_021(void) {
+    SVGPathCommand const *command = NULL;
+    SVGPath * path = svg_path_make_from_string(
+        "M 0 0 C 1 1 3 1 4 0 s 3 -1 4 0"
+    );
+    ASSERT_NOT_NULL(path, "Expected path to be parsed");
+    ASSERT_EQ(svg_path_command_count(path), 2, "Unexpected command count");
+
+    command = svg_path_get_command(path, 1);
+    ASSERT_NOT_NULL(command, "Expected second command to be not NULL");
+    ASSERT_PATH_IS_CBEZIER(*command, 4,0, 5,-1, 7,-1, 8,0);
+
+    svg_path_destroy(path);
+    return 0;
+}
+
+
+static int test_022(void) {
+    SVGPathCommand const *command = NULL;
+    SVGPath * path = svg_path_make_from_string("M 0 0 q 1 1 2 0 t 2 2");
+    ASSERT_NOT_NULL(path, "Expected path to be parsed");
+    ASSERT_EQ(svg_path_command_count(path), 2, "Unexpected command count");
+
+    command = svg_path_get_command(path, 1);
+    ASSERT_NOT_NULL(command, "Expected second command to be not NULL");
+    ASSERT_PATH_IS_QBEZIER(*command, 2,0, 3,-1, 4,2);
+
+    svg_path_destroy(path);
+    return 0;
+}
+
+
+static int test_023(void) {
+    SVGPathCommand const *command = NULL;
+    SVGPath * path = svg_path_make_from_string("M 0 0 Q 1 1 2 0 S 4 1 5 0");
+    ASSERT_NOT_NULL(path, "Expected path to be parsed");
+    ASSERT_EQ(svg_path_command_count(path), 2, "Unexpected command count");
+
+    command = svg_path_get_command(path, 1);
+    ASSERT_NOT_NULL(command, "Expected second command to be not NULL");
+    ASSERT_PATH_IS_CBEZIER(*command, 2,0, 2,0, 4,1, 5,0);
+
+    svg_path_destroy(path);
+    return 0;
+}
+
+
+static int test_024(void) {
+    SVGPathCommand const *command = NULL;
+    SVGPath * path = svg_path_make_from_string("M 0 0 C 1 1 3 1 4 0 T 6 1");
+    ASSERT_NOT_NULL(path, "Expected path to be parsed");
+    ASSERT_EQ(svg_path_command_count(path), 2, "Unexpected command count");
+
+    command = svg_path_get_command(path, 1);
+    ASSERT_NOT_NULL(command, "Expected second command to be not NULL");
+    ASSERT_PATH_IS_QBEZIER(*command, 4,0, 4,0, 6,1);
+
+    svg_path_destroy(path);
+    return 0;
+}
+
+
 static Test tests[] = {
     {.name="Basic parsing 001", .call=&test_001},
     {.name="Basic parsing 002", .call=&test_002},
@@ -243,6 +473,20 @@ static Test tests[] = {
     {.name="S command parsing 008", .call=&test_008},
     {.name="S command repetition 009", .call=&test_009},
     {.name="Relative s command 010", .call=&test_010},
+    {.name="Moveto implicit lineto 011", .call=&test_011},
+    {.name="Moveto implicit linetos 012", .call=&test_012},
+    {.name="Relative moveto implicit lineto 013", .call=&test_013},
+    {.name="Moveto implicit and explicit linetos 014", .call=&test_014},
+    {.name="S reflection after C 015", .call=&test_015},
+    {.name="S reflection chain 016", .call=&test_016},
+    {.name="S reflection after lineto 017", .call=&test_017},
+    {.name="T reflection after Q 018", .call=&test_018},
+    {.name="T reflection chain 019", .call=&test_019},
+    {.name="T reflection after lineto 020", .call=&test_020},
+    {.name="Relative s reflection 021", .call=&test_021},
+    {.name="Relative t reflection 022", .call=&test_022},
+    {.name="S control after Q 023", .call=&test_023},
+    {.name="T control after C 024", .call=&test_024},
     {.name="Real case 101", .call=&test_101},
     {.name="", .call=NULL},
 };
