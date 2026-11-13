@@ -15,6 +15,13 @@ static void render_points(
     RenderState const *state,
     int close
 );
+static void render_oval(
+    PdfBuf *out,
+    RenderState const *state,
+    Point2D center,
+    double rx,
+    double ry
+);
 
 
 void render_path(xmlNode *node, PdfBuf *out, RenderState const *state) {
@@ -146,28 +153,66 @@ static void render_points(
 
 
 void render_circle(xmlNode *node, PdfBuf *out, RenderState const *state) {
-    double cx = attr_double(node, "cx", 0);
-    double cy = attr_double(node, "cy", 0);
     double r = attr_double(node, "r", 0);
     if (r <= 0) {
         return;
     }
-    double k = r * CIRCLE_KAPPA;
+    render_oval(
+        out,
+        state,
+        (Point2D){
+            .x=attr_double(node, "cx", 0),
+            .y=attr_double(node, "cy", 0),
+        },
+        r,
+        r
+    );
+}
+
+
+void render_ellipse(xmlNode *node, PdfBuf *out, RenderState const *state) {
+    double rx = attr_double(node, "rx", 0);
+    double ry = attr_double(node, "ry", 0);
+    if (rx <= 0 || ry <= 0) {
+        return;
+    }
+    render_oval(
+        out,
+        state,
+        (Point2D){
+            .x=attr_double(node, "cx", 0),
+            .y=attr_double(node, "cy", 0),
+        },
+        rx,
+        ry
+    );
+}
+
+
+static void render_oval(
+    PdfBuf *out,
+    RenderState const *state,
+    Point2D center,
+    double rx,
+    double ry
+) {
+    double kx = rx * CIRCLE_KAPPA;
+    double ky = ry * CIRCLE_KAPPA;
     Point2D p[4] = {
-        {cx + r, cy},
-        {cx, cy + r},
-        {cx - r, cy},
-        {cx, cy - r},
+        {center.x + rx, center.y},
+        {center.x, center.y + ry},
+        {center.x - rx, center.y},
+        {center.x, center.y - ry},
     };
     Point2D ctrl[8] = {
-        {cx + r, cy + k},
-        {cx + k, cy + r},
-        {cx - k, cy + r},
-        {cx - r, cy + k},
-        {cx - r, cy - k},
-        {cx - k, cy - r},
-        {cx + k, cy - r},
-        {cx + r, cy - k},
+        {center.x + rx, center.y + ky},
+        {center.x + kx, center.y + ry},
+        {center.x - kx, center.y + ry},
+        {center.x - rx, center.y + ky},
+        {center.x - rx, center.y - ky},
+        {center.x - kx, center.y - ry},
+        {center.x + kx, center.y - ry},
+        {center.x + rx, center.y - ky},
     };
     for (int i = 0; i < 4; i++) {
         p[i] = geo_transform_apply_point(state->transform, p[i]);

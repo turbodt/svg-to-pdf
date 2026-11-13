@@ -18,9 +18,12 @@ static xmlChar const *tag_line = (xmlChar const *)"line";
 static xmlChar const *tag_polyline = (xmlChar const *)"polyline";
 static xmlChar const *tag_polygon = (xmlChar const *)"polygon";
 static xmlChar const *tag_circle = (xmlChar const *)"circle";
+static xmlChar const *tag_ellipse = (xmlChar const *)"ellipse";
 static xmlChar const *tag_cx = (xmlChar const *)"cx";
 static xmlChar const *tag_cy = (xmlChar const *)"cy";
 static xmlChar const *tag_r = (xmlChar const *)"r";
+static xmlChar const *tag_rx = (xmlChar const *)"rx";
+static xmlChar const *tag_ry = (xmlChar const *)"ry";
 static xmlChar const *tag_points = (xmlChar const *)"points";
 static xmlChar const *tag_width = (xmlChar const *)"width";
 static xmlChar const *tag_height = (xmlChar const *)"height";
@@ -37,6 +40,13 @@ static Box2D xml_rect_extract_bbox(xmlNode *node, Transform const *trans);
 static Box2D xml_line_extract_bbox(xmlNode *node, Transform const *trans);
 static Box2D xml_points_extract_bbox(xmlNode *node, Transform const *trans);
 static Box2D xml_circle_extract_bbox(xmlNode *node, Transform const *trans);
+static Box2D xml_ellipse_extract_bbox(xmlNode *node, Transform const *trans);
+static Box2D xml_oval_extract_bbox(
+    xmlNode *node,
+    Transform const *trans,
+    double rx,
+    double ry
+);
 static double xml_attr_double(xmlNode *node, xmlChar const *name);
 static Transform * parse_transform(Transform const *curr, const char *str);
 static double min4(double, double, double, double);
@@ -87,6 +97,8 @@ void xml_bbox_collection_make_from_node(
             bbox = xml_points_extract_bbox(node_cur, trans_cur);
         } else if (xmlStrEqual(node_cur->name, tag_circle)) {
             bbox = xml_circle_extract_bbox(node_cur, trans_cur);
+        } else if (xmlStrEqual(node_cur->name, tag_ellipse)) {
+            bbox = xml_ellipse_extract_bbox(node_cur, trans_cur);
         }
 
         if (bbox.size.width != 0 || bbox.size.height != 0) {
@@ -248,23 +260,46 @@ Box2D xml_circle_extract_bbox(xmlNode *node, Transform const *trans) {
     if (!node || !xmlStrEqual(node->name, tag_circle)) {
         return (Box2D){0};
     }
+    double r = xml_attr_double(node, tag_r);
+    return xml_oval_extract_bbox(node, trans, r, r);
+}
+
+
+Box2D xml_ellipse_extract_bbox(xmlNode *node, Transform const *trans) {
+    if (!node || !xmlStrEqual(node->name, tag_ellipse)) {
+        return (Box2D){0};
+    }
+    double rx = xml_attr_double(node, tag_rx);
+    double ry = xml_attr_double(node, tag_ry);
+    return xml_oval_extract_bbox(node, trans, rx, ry);
+}
+
+
+Box2D xml_oval_extract_bbox(
+    xmlNode *node,
+    Transform const *trans,
+    double rx,
+    double ry
+) {
+    if (rx <= 0 || ry <= 0) {
+        return (Box2D){0};
+    }
 
     Point2D center = {
         xml_attr_double(node, tag_cx),
         xml_attr_double(node, tag_cy),
     };
-    double r = xml_attr_double(node, tag_r);
-    if (r <= 0) {
-        return (Box2D){0};
-    }
-
     double const *m = geo_transform_getc_matrix(trans);
     center = geo_transform_apply_point(trans, center);
-    /* The transformed circle is an ellipse whose half extents are the
+    /* The transformed circle or ellipse has half extents given by the
        lengths of the transformed axes, so this stays exact when the
        transform rotates or skews the shape. */
-    double half_width = r * sqrt(m[0] * m[0] + m[1] * m[1]);
-    double half_height = r * sqrt(m[3] * m[3] + m[4] * m[4]);
+    double half_width = sqrt(
+        (m[0] * rx) * (m[0] * rx) + (m[1] * ry) * (m[1] * ry)
+    );
+    double half_height = sqrt(
+        (m[3] * rx) * (m[3] * rx) + (m[4] * ry) * (m[4] * ry)
+    );
 
     return (Box2D) {
         .tl = {.x=center.x - half_width, .y=center.y - half_height},

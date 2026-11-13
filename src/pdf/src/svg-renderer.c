@@ -145,6 +145,8 @@ static void render_node(
             render_polygon(cur, out, &child);
         } else if (xmlStrEqual(cur->name, (xmlChar const *)"circle")) {
             render_circle(cur, out, &child);
+        } else if (xmlStrEqual(cur->name, (xmlChar const *)"ellipse")) {
+            render_ellipse(cur, out, &child);
         } else if (xmlStrEqual(cur->name, (xmlChar const *)"text")) {
             render_text(cur, out, &child);
         }

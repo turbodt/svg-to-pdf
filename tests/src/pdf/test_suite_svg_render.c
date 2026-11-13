@@ -401,6 +401,72 @@ static int test_018(void) {
 }
 
 
+static int test_019(void) {
+    PdfPage page = {0};
+    ASSERT_ZERO(render_svg(
+        "<svg width=\"100\" height=\"100\">"
+        "<ellipse cx=\"50\" cy=\"50\" rx=\"20\" ry=\"10\""
+        " fill=\"none\" stroke=\"#000000\"/>"
+        "</svg>",
+        &page
+    ));
+    ASSERT_ZERO(assert_content(&page, "70.000000 50.000000 m\n"));
+    ASSERT_ZERO(assert_content(
+        &page,
+        "70.000000 44.477153 61.045695 40.000000 50.000000 40.000000 c\n"
+    ));
+    ASSERT_EQ(
+        count_occurrences(page.data, " c\n"),
+        4,
+        "Expected four cubic curves"
+    );
+    ASSERT_ZERO(assert_content(&page, "h\n"));
+    ASSERT_ZERO(assert_content(&page, "S\n"));
+    pdf_page_destroy(&page);
+    return 0;
+}
+
+
+static int test_020(void) {
+    PdfPage page = {0};
+    ASSERT_ZERO(render_svg(
+        "<svg width=\"100\" height=\"100\">"
+        "<ellipse cx=\"50\" cy=\"50\" rx=\"20\" ry=\"10\""
+        " transform=\"translate(5 5)\""
+        " fill=\"none\" stroke=\"#000000\"/>"
+        "</svg>",
+        &page
+    ));
+    ASSERT_ZERO(assert_content(&page, "75.000000 45.000000 m\n"));
+    pdf_page_destroy(&page);
+    return 0;
+}
+
+
+static int test_021(void) {
+    PdfPage page = {0};
+    ASSERT_ZERO(render_svg(
+        "<svg width=\"100\" height=\"100\">"
+        "<ellipse cx=\"50\" cy=\"50\" rx=\"0\" ry=\"10\""
+        " fill=\"none\" stroke=\"#000000\"/>"
+        "<ellipse cx=\"50\" cy=\"50\" rx=\"20\" ry=\"0\""
+        " fill=\"none\" stroke=\"#000000\"/>"
+        "<ellipse cx=\"50\" cy=\"50\""
+        " fill=\"none\" stroke=\"#000000\"/>"
+        "<ellipse cx=\"50\" cy=\"50\" rx=\"-20\" ry=\"-10\""
+        " fill=\"none\" stroke=\"#000000\"/>"
+        "</svg>",
+        &page
+    ));
+    ASSERT(
+        strstr((char const *) page.data, " m\n") == NULL,
+        "Expected no path for ellipses without positive radii"
+    );
+    pdf_page_destroy(&page);
+    return 0;
+}
+
+
 static Test tests[] = {
     {.name="Line renders its path and stroke", .call=&test_001},
     {.name="Line attributes default to zero", .call=&test_002},
@@ -420,6 +486,9 @@ static Test tests[] = {
     {.name="Circle renders four cubic curves", .call=&test_016},
     {.name="Circle applies its transform", .call=&test_017},
     {.name="Circle needs a positive radius", .call=&test_018},
+    {.name="Ellipse renders four cubic curves", .call=&test_019},
+    {.name="Ellipse applies its transform", .call=&test_020},
+    {.name="Ellipse needs positive radii", .call=&test_021},
     {.name="", .call=NULL},
 };
 
