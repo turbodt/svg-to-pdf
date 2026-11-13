@@ -4,7 +4,7 @@
 
 /* Distance of the control points from each arc endpoint, as a fraction
    of the radius, so that a cubic Bezier approximates a quarter circle
-   with minimal radial error. */
+   or ellipse arc with minimal radial error. */
 #define CIRCLE_KAPPA 0.5522847498307936
 
 
@@ -80,13 +80,74 @@ void render_rect(xmlNode *node, PdfBuf *out, RenderState const *state) {
     if (w <= 0 || h <= 0) {
         return;
     }
-    Point2D p[4] = {{x,y}, {x+w,y}, {x+w,y+h}, {x,y+h}};
-    for (int i = 0; i < 4; i++) {
-        p[i] = geo_transform_apply_point(state->transform, p[i]);
+    double rx = attr_double(node, "rx", -1);
+    double ry = attr_double(node, "ry", -1);
+    if (rx < 0 && ry < 0) {
+        rx = 0;
+        ry = 0;
+    } else if (rx < 0) {
+        rx = ry;
+    } else if (ry < 0) {
+        ry = rx;
     }
-    emit_point(out, state, p[0]); pdf_buf_printf(out, " m\n");
-    for (int i = 1; i < 4; i++) {
-        emit_point(out, state, p[i]); pdf_buf_printf(out, " l\n");
+    if (rx > w / 2) {
+        rx = w / 2;
+    }
+    if (ry > h / 2) {
+        ry = h / 2;
+    }
+    if (rx <= 0 || ry <= 0) {
+        Point2D p[4] = {{x,y}, {x+w,y}, {x+w,y+h}, {x,y+h}};
+        for (int i = 0; i < 4; i++) {
+            p[i] = geo_transform_apply_point(state->transform, p[i]);
+        }
+        emit_point(out, state, p[0]);
+        pdf_buf_printf(out, " m\n");
+        for (int i = 1; i < 4; i++) {
+            emit_point(out, state, p[i]);
+            pdf_buf_printf(out, " l\n");
+        }
+        pdf_buf_printf(out, "h\n");
+        emit_paint(out, state);
+        return;
+    }
+    double kx = rx * CIRCLE_KAPPA;
+    double ky = ry * CIRCLE_KAPPA;
+    Point2D p[8] = {
+        {x + rx, y},
+        {x + w - rx, y},
+        {x + w, y + ry},
+        {x + w, y + h - ry},
+        {x + w - rx, y + h},
+        {x + rx, y + h},
+        {x, y + h - ry},
+        {x, y + ry},
+    };
+    Point2D ctrl[8] = {
+        {x + w - rx + kx, y},
+        {x + w, y + ry - ky},
+        {x + w, y + h - ry + ky},
+        {x + w - rx + kx, y + h},
+        {x + rx - kx, y + h},
+        {x, y + h - ry + ky},
+        {x, y + ry - ky},
+        {x + rx - kx, y},
+    };
+    for (int i = 0; i < 8; i++) {
+        p[i] = geo_transform_apply_point(state->transform, p[i]);
+        ctrl[i] = geo_transform_apply_point(state->transform, ctrl[i]);
+    }
+    emit_point(out, state, p[0]);
+    pdf_buf_printf(out, " m\n");
+    for (int i = 0; i < 4; i++) {
+        emit_point(out, state, p[2 * i + 1]);
+        pdf_buf_printf(out, " l\n");
+        emit_point(out, state, ctrl[2 * i]);
+        pdf_buf_printf(out, " ");
+        emit_point(out, state, ctrl[2 * i + 1]);
+        pdf_buf_printf(out, " ");
+        emit_point(out, state, p[(2 * i + 2) % 8]);
+        pdf_buf_printf(out, " c\n");
     }
     pdf_buf_printf(out, "h\n");
     emit_paint(out, state);

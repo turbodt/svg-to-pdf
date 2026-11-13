@@ -467,6 +467,104 @@ static int test_021(void) {
 }
 
 
+static int test_022(void) {
+    PdfPage page = {0};
+    ASSERT_ZERO(render_svg(
+        "<svg width=\"100\" height=\"100\">"
+        "<rect x=\"10\" y=\"10\" width=\"80\" height=\"60\" rx=\"10\" ry=\"10\""
+        " fill=\"none\" stroke=\"#000000\"/>"
+        "</svg>",
+        &page
+    ));
+    ASSERT_ZERO(assert_content(
+        &page,
+        "20.000000 90.000000 m\n"
+        "80.000000 90.000000 l\n"
+        "85.522847 90.000000 90.000000 85.522847 90.000000 80.000000 c\n"
+    ));
+    ASSERT_EQ(
+        count_occurrences(page.data, " c\n"),
+        4,
+        "Expected four rounded corners"
+    );
+    ASSERT_ZERO(assert_content(&page, "h\n"));
+    ASSERT_ZERO(assert_content(&page, "S\n"));
+    pdf_page_destroy(&page);
+    return 0;
+}
+
+
+static int test_023(void) {
+    PdfPage page = {0};
+    ASSERT_ZERO(render_svg(
+        "<svg width=\"100\" height=\"100\">"
+        "<rect x=\"0\" y=\"0\" width=\"100\" height=\"100\" ry=\"10\""
+        " fill=\"none\" stroke=\"#000000\"/>"
+        "</svg>",
+        &page
+    ));
+    ASSERT_ZERO(assert_content(
+        &page,
+        "10.000000 100.000000 m\n"
+        "90.000000 100.000000 l\n"
+        "95.522847 100.000000 100.000000 95.522847 100.000000 90.000000 c\n"
+    ));
+    ASSERT_EQ(
+        count_occurrences(page.data, " c\n"),
+        4,
+        "Expected four rounded corners"
+    );
+    pdf_page_destroy(&page);
+    return 0;
+}
+
+
+static int test_024(void) {
+    PdfPage page = {0};
+    ASSERT_ZERO(render_svg(
+        "<svg width=\"100\" height=\"100\">"
+        "<rect x=\"0\" y=\"0\" width=\"20\" height=\"10\" rx=\"100\" ry=\"100\""
+        " fill=\"none\" stroke=\"#000000\"/>"
+        "</svg>",
+        &page
+    ));
+    ASSERT_ZERO(assert_content(
+        &page,
+        "10.000000 100.000000 m\n"
+        "10.000000 100.000000 l\n"
+        "15.522847 100.000000 20.000000 97.761424 20.000000 95.000000 c\n"
+    ));
+    ASSERT_EQ(
+        count_occurrences(page.data, " c\n"),
+        4,
+        "Expected four rounded corners"
+    );
+    pdf_page_destroy(&page);
+    return 0;
+}
+
+
+static int test_025(void) {
+    PdfPage page = {0};
+    ASSERT_ZERO(render_svg(
+        "<svg width=\"100\" height=\"100\">"
+        "<rect x=\"0\" y=\"0\" width=\"100\" height=\"100\" rx=\"0\" ry=\"10\""
+        " fill=\"none\" stroke=\"#000000\"/>"
+        "</svg>",
+        &page
+    ));
+    ASSERT_ZERO(assert_content(&page, "0.000000 100.000000 m\n"));
+    ASSERT_EQ(
+        count_occurrences(page.data, " c\n"),
+        0,
+        "Expected square corners when rx is zero"
+    );
+    ASSERT_ZERO(assert_content(&page, "h\n"));
+    pdf_page_destroy(&page);
+    return 0;
+}
+
+
 static Test tests[] = {
     {.name="Line renders its path and stroke", .call=&test_001},
     {.name="Line attributes default to zero", .call=&test_002},
@@ -489,6 +587,10 @@ static Test tests[] = {
     {.name="Ellipse renders four cubic curves", .call=&test_019},
     {.name="Ellipse applies its transform", .call=&test_020},
     {.name="Ellipse needs positive radii", .call=&test_021},
+    {.name="Rounded rect renders four corners", .call=&test_022},
+    {.name="Rounded rect defaults rx from ry", .call=&test_023},
+    {.name="Rounded rect clamps its radii", .call=&test_024},
+    {.name="Rounded rect with zero rx stays square", .call=&test_025},
     {.name="", .call=NULL},
 };
 

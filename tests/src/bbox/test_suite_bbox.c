@@ -483,6 +483,61 @@ static int test_026(void) {
 }
 
 
+static int test_027(void) {
+    char const *svg = "<svg width=\"100\" height=\"100\">"
+        "<rect x=\"10\" y=\"20\" width=\"80\" height=\"60\" rx=\"20\" ry=\"20\"/>"
+        "</svg>";
+    SvgDocument *doc = make_doc(svg);
+    ASSERT_NOT_NULL(doc, "Failed to parse SVG document");
+    BboxCollection *coll = bbox_collection_make_from_doc(doc);
+    ASSERT_NOT_NULL(coll, "Failed to make bbox collection");
+    ASSERT_EQ(bbox_collection_get_count(coll), 1, "Unexpected item count");
+    BboxItem const *item = bbox_collection_getc(coll, 0);
+    ASSERT_NOT_NULL(item, "Missing bbox item");
+    ASSERT_BOX_COORDS_EQ(item->bbox, 10, 20, 90, 80, "Unexpected bbox");
+    bbox_collection_destroy(coll);
+    bbox_svg_doc_destroy(doc);
+    return 0;
+}
+
+
+static int test_028(void) {
+    char const *svg = "<svg width=\"100\" height=\"100\">"
+        "<rect x=\"0\" y=\"0\" width=\"20\" height=\"10\" rx=\"100\" ry=\"100\""
+        " transform=\"translate(5 5)\"/>"
+        "</svg>";
+    SvgDocument *doc = make_doc(svg);
+    ASSERT_NOT_NULL(doc, "Failed to parse SVG document");
+    BboxCollection *coll = bbox_collection_make_from_doc(doc);
+    ASSERT_NOT_NULL(coll, "Failed to make bbox collection");
+    ASSERT_EQ(bbox_collection_get_count(coll), 1, "Unexpected item count");
+    BboxItem const *item = bbox_collection_getc(coll, 0);
+    ASSERT_NOT_NULL(item, "Missing bbox item");
+    ASSERT_BOX_COORDS_EQ(item->bbox, 5, 5, 25, 15, "Unexpected bbox");
+    bbox_collection_destroy(coll);
+    bbox_svg_doc_destroy(doc);
+    return 0;
+}
+
+
+static int test_029(void) {
+    char const *svg = "<svg width=\"100\" height=\"100\">"
+        "<rect x=\"0\" y=\"0\" width=\"20\" height=\"10\" rx=\"-5\"/>"
+        "</svg>";
+    SvgDocument *doc = make_doc(svg);
+    ASSERT_NOT_NULL(doc, "Failed to parse SVG document");
+    BboxCollection *coll = bbox_collection_make_from_doc(doc);
+    ASSERT_NOT_NULL(coll, "Failed to make bbox collection");
+    ASSERT_EQ(bbox_collection_get_count(coll), 1, "Unexpected item count");
+    BboxItem const *item = bbox_collection_getc(coll, 0);
+    ASSERT_NOT_NULL(item, "Missing bbox item");
+    ASSERT_BOX_COORDS_EQ(item->bbox, 0, 0, 20, 10, "Unexpected bbox");
+    bbox_collection_destroy(coll);
+    bbox_svg_doc_destroy(doc);
+    return 0;
+}
+
+
 static Test tests[] = {
     {.name="Diagonal line bbox", .call=&test_001},
     {.name="Line bbox normalizes endpoints", .call=&test_002},
@@ -510,6 +565,9 @@ static Test tests[] = {
     {.name="Ellipse bbox applies its transform", .call=&test_024},
     {.name="Rotated ellipse bbox stays exact", .call=&test_025},
     {.name="Ellipses without positive radii are not collected", .call=&test_026},
+    {.name="Rounded rect bbox is the full rect", .call=&test_027},
+    {.name="Rounded rect bbox applies its transform", .call=&test_028},
+    {.name="Rounded rect bbox ignores invalid radii", .call=&test_029},
     {.name="", .call=NULL},
 };
 
