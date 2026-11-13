@@ -16,6 +16,7 @@ static xmlChar const *tag_d = (xmlChar const *)"d";
 static xmlChar const *tag_rect = (xmlChar const *)"rect";
 static xmlChar const *tag_line = (xmlChar const *)"line";
 static xmlChar const *tag_polyline = (xmlChar const *)"polyline";
+static xmlChar const *tag_polygon = (xmlChar const *)"polygon";
 static xmlChar const *tag_points = (xmlChar const *)"points";
 static xmlChar const *tag_width = (xmlChar const *)"width";
 static xmlChar const *tag_height = (xmlChar const *)"height";
@@ -75,6 +76,8 @@ void xml_bbox_collection_make_from_node(
         } else if (xmlStrEqual(node_cur->name, tag_line)) {
             bbox = xml_line_extract_bbox(node_cur, trans_cur);
         } else if (xmlStrEqual(node_cur->name, tag_polyline)) {
+            bbox = xml_points_extract_bbox(node_cur, trans_cur);
+        } else if (xmlStrEqual(node_cur->name, tag_polygon)) {
             bbox = xml_points_extract_bbox(node_cur, trans_cur);
         }
 

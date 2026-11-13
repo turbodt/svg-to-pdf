@@ -3,6 +3,12 @@
 
 
 static void pdf_escape_text(PdfBuf *out, char const *s);
+static void render_points(
+    xmlNode *node,
+    PdfBuf *out,
+    RenderState const *state,
+    int close
+);
 
 
 void render_path(xmlNode *node, PdfBuf *out, RenderState const *state) {
@@ -89,6 +95,21 @@ void render_line(xmlNode *node, PdfBuf *out, RenderState const *state) {
 
 
 void render_polyline(xmlNode *node, PdfBuf *out, RenderState const *state) {
+    render_points(node, out, state, 0);
+}
+
+
+void render_polygon(xmlNode *node, PdfBuf *out, RenderState const *state) {
+    render_points(node, out, state, 1);
+}
+
+
+static void render_points(
+    xmlNode *node,
+    PdfBuf *out,
+    RenderState const *state,
+    int close
+) {
     char *points_str = attr_string(node, "points");
     if (!points_str) {
         return;
@@ -109,6 +130,9 @@ void render_polyline(xmlNode *node, PdfBuf *out, RenderState const *state) {
     for (unsigned int i = 1; i < count; i++) {
         emit_point(out, state, svg_points_get(points, i));
         pdf_buf_printf(out, " l\n");
+    }
+    if (close) {
+        pdf_buf_printf(out, "h\n");
     }
     emit_paint(out, state);
     svg_points_destroy(points);

@@ -247,6 +247,87 @@ static int test_011(void) {
 }
 
 
+static int test_012(void) {
+    PdfPage page = {0};
+    ASSERT_ZERO(render_svg(
+        "<svg width=\"100\" height=\"100\">"
+        "<polygon points=\"10,20 30,40 50,20\""
+        " fill=\"none\" stroke=\"#000000\"/>"
+        "</svg>",
+        &page
+    ));
+    ASSERT_ZERO(assert_content(
+        &page,
+        "10.000000 80.000000 m\n"
+        "30.000000 60.000000 l\n"
+        "50.000000 80.000000 l\n"
+        "h\n"
+    ));
+    ASSERT_ZERO(assert_content(&page, "S\n"));
+    pdf_page_destroy(&page);
+    return 0;
+}
+
+
+static int test_013(void) {
+    PdfPage page = {0};
+    ASSERT_ZERO(render_svg(
+        "<svg width=\"100\" height=\"100\">"
+        "<polygon points=\"10 20, 30 40, 50\""
+        " fill=\"none\" stroke=\"#000000\"/>"
+        "</svg>",
+        &page
+    ));
+    ASSERT_ZERO(assert_content(
+        &page,
+        "10.000000 80.000000 m\n30.000000 60.000000 l\nh\n"
+    ));
+    ASSERT(
+        strstr((char const *) page.data, "50.000000") == NULL,
+        "Expected trailing odd coordinate to be ignored"
+    );
+    pdf_page_destroy(&page);
+    return 0;
+}
+
+
+static int test_014(void) {
+    PdfPage page = {0};
+    ASSERT_ZERO(render_svg(
+        "<svg width=\"100\" height=\"100\">"
+        "<polygon points=\"0,0 10,0\" transform=\"translate(5 5)\""
+        " fill=\"none\" stroke=\"#000000\"/>"
+        "</svg>",
+        &page
+    ));
+    ASSERT_ZERO(assert_content(
+        &page,
+        "5.000000 95.000000 m\n15.000000 95.000000 l\nh\n"
+    ));
+    pdf_page_destroy(&page);
+    return 0;
+}
+
+
+static int test_015(void) {
+    PdfPage page = {0};
+    ASSERT_ZERO(render_svg(
+        "<svg width=\"100\" height=\"100\">"
+        "<polygon points=\"10 10\" fill=\"none\" stroke=\"#000000\"/>"
+        "<polygon points=\"\" fill=\"none\" stroke=\"#000000\"/>"
+        "<polygon fill=\"none\" stroke=\"#000000\"/>"
+        "</svg>",
+        &page
+    ));
+    ASSERT(
+        strstr((char const *) page.data, " m\n") == NULL,
+        "Expected no path for polygons with less than two points"
+    );
+    pdf_page_destroy(&page);
+    return 0;
+}
+
+
 static Test tests[] = {
     {.name="Line renders its path and stroke", .call=&test_001},
     {.name="Line attributes default to zero", .call=&test_002},
@@ -259,6 +340,10 @@ static Test tests[] = {
     {.name="Polyline ignores a trailing odd coordinate", .call=&test_009},
     {.name="Polyline applies its transform", .call=&test_010},
     {.name="Polyline needs at least two points", .call=&test_011},
+    {.name="Polygon renders its path and closes it", .call=&test_012},
+    {.name="Polygon ignores a trailing odd coordinate", .call=&test_013},
+    {.name="Polygon applies its transform", .call=&test_014},
+    {.name="Polygon needs at least two points", .call=&test_015},
     {.name="", .call=NULL},
 };
 
