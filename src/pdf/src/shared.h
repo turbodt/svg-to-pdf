@@ -41,6 +41,11 @@ char *attr_string(xmlNode *node, char const *name);
 
 void render_path(xmlNode *node, PdfBuf *out, RenderState const *state);
 void render_rect(xmlNode *node, PdfBuf *out, RenderState const *state);
+void render_line(xmlNode *node, PdfBuf *out, RenderState const *state);
+void render_polyline(xmlNode *node, PdfBuf *out, RenderState const *state);
+void render_polygon(xmlNode *node, PdfBuf *out, RenderState const *state);
+void render_circle(xmlNode *node, PdfBuf *out, RenderState const *state);
+void render_ellipse(xmlNode *node, PdfBuf *out, RenderState const *state);
 void render_text(xmlNode *node, PdfBuf *out, RenderState const *state);
 int emit_clip(xmlNode *node, PdfBuf *out, RenderState const *state, xmlDoc *doc);
 

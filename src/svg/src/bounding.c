@@ -20,9 +20,14 @@ static Interval cmd_cbezier_get_y_bound(SVGPathCommand const *command);
 static Interval cmd_linear_get_dim_bound(double p0, double p1);
 static Interval cmd_qbezier_get_dim_bound(double p0, double p1, double p2);
 static Interval cmd_cbezier_get_dim_bound(double p0, double p1, double p2, double p3);
+static Interval polynomial_deg3_get_dim_bound_01(double D, double C, double B, double A);
+static Interval polynomial_deg2_get_dim_bound_01(double C, double B, double A);
+static Interval polynomial_deg1_get_dim_bound_01(double B, double A);
 static Box2D create_box(Interval Ix, Interval Iy);
 static double min2(double const [2]);
 static double max2(double const [2]);
+static double min3(double const [3]);
+static double max3(double const [3]);
 static double min4(double const [4]);
 static double max4(double const [4]);
 static int almost_eq_rel(double a, double b);
@@ -48,6 +53,42 @@ Box2D svg_path_get_bbox(SVGPath const *path) {
     }
 
     return bbox;
+};
+
+
+Box2D svg_points_get_bbox(SVGPoints const *points) {
+    Box2D bbox = {0};
+    if (!points) {
+        return bbox;
+    }
+    unsigned int const count = svg_points_count(points);
+    if (count == 0) {
+        return bbox;
+    }
+
+    Point2D first = svg_points_get(points, 0);
+    double x_min = first.x, x_max = first.x;
+    double y_min = first.y, y_max = first.y;
+    for (unsigned int i = 1; i < count; i++) {
+        Point2D p = svg_points_get(points, i);
+        if (p.x < x_min) {
+            x_min = p.x;
+        }
+        if (p.x > x_max) {
+            x_max = p.x;
+        }
+        if (p.y < y_min) {
+            y_min = p.y;
+        }
+        if (p.y > y_max) {
+            y_max = p.y;
+        }
+    }
+
+    return (Box2D){
+        .tl = {.x=x_min, .y=y_min},
+        .size = {.width=x_max - x_min, .height=y_max - y_min},
+    };
 };
 
 
@@ -146,59 +187,68 @@ inline Interval cmd_linear_get_dim_bound(double p0, double p1) {
 
 
 Interval cmd_qbezier_get_dim_bound(double p0, double p1, double p2) {
-    if (almost_eq_rel(p2 - p1, p1 - p0)) {
-        return cmd_linear_get_dim_bound(p0, p2);
-    }
-
     double const A = p2 - 2*p1 + p0;
     double const B = 2*(p1 - p0);
-    double const t = - B / 2 /A;
-    if (t <= 0 || t >= 1) {
-        return cmd_linear_get_dim_bound(p0, p2);
-    }
-
-    double const p4 = (A *t + B)*t + p0;
-    Interval I = {p0, p2};
-    if (p2 < p0) {
-        I = (Interval){p2, p0};
-    }
-    if (p4 < I.min) {
-        I.min = p4;
-    } else if (p4 > I.max) {
-        I.max = p4;
-    }
-    return I;
+    return polynomial_deg2_get_dim_bound_01(p0, B, A);
 }
 
 
 Interval cmd_cbezier_get_dim_bound(double p0, double p1, double p2, double p3) {
     double const b1 = p3 - 2*p2 + p1;
     double const b0 = p2 - 2*p1 + p0;
-    if (almost_eq_rel(b1, b0)) {
-        return cmd_linear_get_dim_bound(p0, p3);
-    }
-
     double const A = b1 - b0;
     double const B = 3*b0;
     double const C = 3*(p1 - p0);
 
-    double const R = b0*b0 - A*C/3;
-    if (R < 0) {
-        return cmd_linear_get_dim_bound(p0, p3);
+    return polynomial_deg3_get_dim_bound_01(p0, C, B, A);
+}
+
+static Interval polynomial_deg3_get_dim_bound_01(double D, double C, double B, double A) {
+    // P(t) = D + C t + B t^2 + A t^3
+    // P'(t) = C + 2 B t + 3 A t^2
+    if (almost_eq_rel(A, 0.0)) {
+        return polynomial_deg2_get_dim_bound_01(D, C, B);
     }
-    double t1 = - B/3/A + sqrt(R)/A;
-    double t2 = - B/3/A - sqrt(R)/A;
+
+    double const R = B*B - 3*A*C;
+    if (R < 0) {
+        return polynomial_deg1_get_dim_bound_01(D, C + B + A);
+    }
+    double t1 = (- B + sqrt(R))/(3*A);
+    double t2 = (- B - sqrt(R))/(3*A);
     t1 = t1 < 0 ? 0 : t1 > 1 ? 1 : t1;
     t2 = t2 < 0 ? 0 : t2 > 1 ? 1 : t2;
 
     double p[4] = {
-        p0, p3,
-        ((A*t1 + B)*t1 + C)*t1 + p0,
-        ((A*t2 + B)*t2 + C)*t2 + p0
+        D, D + C + B + A,
+        ((A*t1 + B)*t1 + C)*t1 + D,
+        ((A*t2 + B)*t2 + C)*t2 + D,
     };
 
     return (Interval){min4(p),max4(p)};
 }
+
+static Interval polynomial_deg2_get_dim_bound_01(double C, double B, double A) {
+    if (almost_eq_rel(A, 0.0)) {
+        return polynomial_deg1_get_dim_bound_01(C, B);
+    }
+    double t = -B/(2*A);
+    t = t < 0 ? 0 : t > 1 ? 1 : t;
+
+    double p[3] = {C, C + B + A, (A*t + B)*t + C};
+
+    return (Interval){.min = min3(p), .max=max3(p)};
+}
+
+static Interval polynomial_deg1_get_dim_bound_01(double B, double A) {
+    Interval I = {.min=B, .max=B};
+    if (A < 0) {
+        I.min += A;
+    } else {
+        I.max += A;
+    }
+    return I;
+};
 
 
 inline Box2D create_box(Interval Ix, Interval Iy){
@@ -227,30 +277,36 @@ inline double max2(double const  values[2]) {
 };
 
 
+inline double min3(double const values[3]) {
+    double m = min2(values+1);
+    if (m > values[0]) {
+        m = values[0];
+    }
+    return m;
+};
+
+
+inline double max3(double const  values[3]) {
+    double m = max2(values+1);
+    if (m < values[0]) {
+        m = values[0];
+    }
+    return m;
+};
+
+
 inline double min4(double const  values[4]) {
-    double m = values[0];
-    if (m > values[1]) {
-        m = values[1];
-    }
-    if (m > values[2]) {
-        m = values[2];
-    }
-    if (m > values[3]) {
-        m = values[3];
+    double m = min3(values+1);
+    if (m > values[0]) {
+        m = values[0];
     }
     return m;
 };
 
 inline double max4(double const  values[4]) {
-    double m = values[0];
-    if (m < values[1]) {
-        m = values[1];
-    }
-    if (m < values[2]) {
-        m = values[2];
-    }
-    if (m < values[3]) {
-        m = values[3];
+    double m = max3(values+1);
+    if (m < values[0]) {
+        m = values[0];
     }
     return m;
 };

@@ -14,14 +14,40 @@ static xmlChar const *tag_transform = (xmlChar const *)"transform";
 static xmlChar const *tag_path = (xmlChar const *)"path";
 static xmlChar const *tag_d = (xmlChar const *)"d";
 static xmlChar const *tag_rect = (xmlChar const *)"rect";
+static xmlChar const *tag_line = (xmlChar const *)"line";
+static xmlChar const *tag_polyline = (xmlChar const *)"polyline";
+static xmlChar const *tag_polygon = (xmlChar const *)"polygon";
+static xmlChar const *tag_circle = (xmlChar const *)"circle";
+static xmlChar const *tag_ellipse = (xmlChar const *)"ellipse";
+static xmlChar const *tag_cx = (xmlChar const *)"cx";
+static xmlChar const *tag_cy = (xmlChar const *)"cy";
+static xmlChar const *tag_r = (xmlChar const *)"r";
+static xmlChar const *tag_rx = (xmlChar const *)"rx";
+static xmlChar const *tag_ry = (xmlChar const *)"ry";
+static xmlChar const *tag_points = (xmlChar const *)"points";
 static xmlChar const *tag_width = (xmlChar const *)"width";
 static xmlChar const *tag_height = (xmlChar const *)"height";
 static xmlChar const *tag_x = (xmlChar const *)"x";
 static xmlChar const *tag_y = (xmlChar const *)"y";
+static xmlChar const *tag_x1 = (xmlChar const *)"x1";
+static xmlChar const *tag_y1 = (xmlChar const *)"y1";
+static xmlChar const *tag_x2 = (xmlChar const *)"x2";
+static xmlChar const *tag_y2 = (xmlChar const *)"y2";
 static xmlChar const *tag_defs = (xmlChar const *)"defs";
 
 static Box2D xml_path_extract_bbox(xmlNode *node, Transform const *trans);
 static Box2D xml_rect_extract_bbox(xmlNode *node, Transform const *trans);
+static Box2D xml_line_extract_bbox(xmlNode *node, Transform const *trans);
+static Box2D xml_points_extract_bbox(xmlNode *node, Transform const *trans);
+static Box2D xml_circle_extract_bbox(xmlNode *node, Transform const *trans);
+static Box2D xml_ellipse_extract_bbox(xmlNode *node, Transform const *trans);
+static Box2D xml_oval_extract_bbox(
+    xmlNode *node,
+    Transform const *trans,
+    double rx,
+    double ry
+);
+static double xml_attr_double(xmlNode *node, xmlChar const *name);
 static Transform * parse_transform(Transform const *curr, const char *str);
 static double min4(double, double, double, double);
 static double max4(double, double, double, double);
@@ -63,9 +89,19 @@ void xml_bbox_collection_make_from_node(
             bbox = xml_path_extract_bbox(node_cur, trans_cur);
         } else if (xmlStrEqual(node_cur->name, tag_rect)) {
             bbox = xml_rect_extract_bbox(node_cur, trans_cur);
+        } else if (xmlStrEqual(node_cur->name, tag_line)) {
+            bbox = xml_line_extract_bbox(node_cur, trans_cur);
+        } else if (xmlStrEqual(node_cur->name, tag_polyline)) {
+            bbox = xml_points_extract_bbox(node_cur, trans_cur);
+        } else if (xmlStrEqual(node_cur->name, tag_polygon)) {
+            bbox = xml_points_extract_bbox(node_cur, trans_cur);
+        } else if (xmlStrEqual(node_cur->name, tag_circle)) {
+            bbox = xml_circle_extract_bbox(node_cur, trans_cur);
+        } else if (xmlStrEqual(node_cur->name, tag_ellipse)) {
+            bbox = xml_ellipse_extract_bbox(node_cur, trans_cur);
         }
 
-        if (bbox.size.width != 0 && bbox.size.height != 0) {
+        if (bbox.size.width != 0 || bbox.size.height != 0) {
             bbox_collection_append(collection, node_cur, bbox);
         }
 
@@ -164,6 +200,123 @@ Box2D xml_rect_extract_bbox(xmlNode *node, Transform const *trans) {
     };
 };
 
+
+
+Box2D xml_line_extract_bbox(xmlNode *node, Transform const *trans) {
+    if (!node || !xmlStrEqual(node->name, tag_line)) {
+        return (Box2D){0};
+    }
+
+    Point2D p[2] = {{0}};
+    xmlChar const *attr_names[2][2] = {
+        {tag_x1, tag_y1},
+        {tag_x2, tag_y2},
+    };
+    for (int i = 0; i < 2; i++) {
+        char *x_str = (char *) xmlGetProp(node, attr_names[i][0]);
+        char *y_str = (char *) xmlGetProp(node, attr_names[i][1]);
+        if (x_str) {
+            svg_double_parse(x_str, &p[i].x);
+            xmlFree(x_str);
+        }
+        if (y_str) {
+            svg_double_parse(y_str, &p[i].y);
+            xmlFree(y_str);
+        }
+        p[i] = geo_transform_apply_point(trans, p[i]);
+    }
+
+    double x_min = p[0].x < p[1].x ? p[0].x : p[1].x;
+    double x_max = p[0].x < p[1].x ? p[1].x : p[0].x;
+    double y_min = p[0].y < p[1].y ? p[0].y : p[1].y;
+    double y_max = p[0].y < p[1].y ? p[1].y : p[0].y;
+
+    return (Box2D) {
+        .tl = {.x=x_min, .y=y_min},
+        .size = {.width=x_max - x_min, .height=y_max - y_min},
+    };
+};
+
+
+
+Box2D xml_points_extract_bbox(xmlNode *node, Transform const *trans) {
+    xmlChar *points_str = xmlGetProp(node, tag_points);
+    if (!points_str) {
+        return (Box2D){0};
+    }
+    SVGPoints *points = svg_points_make_from_string((char const *)points_str);
+    xmlFree(points_str);
+    if (!points) {
+        return (Box2D){0};
+    }
+    svg_points_apply_transform(points, trans);
+    Box2D bbox = svg_points_get_bbox(points);
+    svg_points_destroy(points);
+    return bbox;
+};
+
+
+Box2D xml_circle_extract_bbox(xmlNode *node, Transform const *trans) {
+    if (!node || !xmlStrEqual(node->name, tag_circle)) {
+        return (Box2D){0};
+    }
+    double r = xml_attr_double(node, tag_r);
+    return xml_oval_extract_bbox(node, trans, r, r);
+}
+
+
+Box2D xml_ellipse_extract_bbox(xmlNode *node, Transform const *trans) {
+    if (!node || !xmlStrEqual(node->name, tag_ellipse)) {
+        return (Box2D){0};
+    }
+    double rx = xml_attr_double(node, tag_rx);
+    double ry = xml_attr_double(node, tag_ry);
+    return xml_oval_extract_bbox(node, trans, rx, ry);
+}
+
+
+Box2D xml_oval_extract_bbox(
+    xmlNode *node,
+    Transform const *trans,
+    double rx,
+    double ry
+) {
+    if (rx <= 0 || ry <= 0) {
+        return (Box2D){0};
+    }
+
+    Point2D center = {
+        xml_attr_double(node, tag_cx),
+        xml_attr_double(node, tag_cy),
+    };
+    double const *m = geo_transform_getc_matrix(trans);
+    center = geo_transform_apply_point(trans, center);
+    /* The transformed circle or ellipse has half extents given by the
+       lengths of the transformed axes, so this stays exact when the
+       transform rotates or skews the shape. */
+    double half_width = sqrt(
+        (m[0] * rx) * (m[0] * rx) + (m[1] * ry) * (m[1] * ry)
+    );
+    double half_height = sqrt(
+        (m[3] * rx) * (m[3] * rx) + (m[4] * ry) * (m[4] * ry)
+    );
+
+    return (Box2D) {
+        .tl = {.x=center.x - half_width, .y=center.y - half_height},
+        .size = {.width=2 * half_width, .height=2 * half_height},
+    };
+};
+
+
+double xml_attr_double(xmlNode *node, xmlChar const *name) {
+    double value = 0;
+    char *str = (char *) xmlGetProp(node, name);
+    if (str) {
+        svg_double_parse(str, &value);
+        xmlFree(str);
+    }
+    return value;
+}
 
 
 Transform * parse_transform(Transform const *curr, const char *str) {

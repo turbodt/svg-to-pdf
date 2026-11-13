@@ -6,10 +6,14 @@ MAIN_DIR ?= $(realpath ../)
 INCLUDES = $(EXTERNAL_INCLUDES) \
 	-I./src/shared/include \
 	-I./src/svg/include \
+	-I./src/pdf/include \
+	-I./src/bbox/include \
 	-I$(SRC_DIR) \
 
 LIBRARIES = \
 	-L./src/svg/lib -ltest-svg \
+	-L./src/pdf/lib -ltest-pdf \
+	-L./src/bbox/lib -ltest-bbox \
 	-L./src/shared/lib -ltest-shared \
 	$(EXTERNAL_LIBRARIES)
 
@@ -52,10 +56,20 @@ submodules:
 		MAIN_DIR=$(MAIN_DIR) \
 		EXTERNAL_INCLUDES="$(EXTERNAL_INCLUDES)" \
 		EXTERNAL_LIBRARIES="$(EXTERNAL_LIBRARIES)"
+	$(MAKE) -C ./src/pdf \
+		MAIN_DIR=$(MAIN_DIR) \
+		EXTERNAL_INCLUDES="$(EXTERNAL_INCLUDES)" \
+		EXTERNAL_LIBRARIES="$(EXTERNAL_LIBRARIES)"
+	$(MAKE) -C ./src/bbox \
+		MAIN_DIR=$(MAIN_DIR) \
+		EXTERNAL_INCLUDES="$(EXTERNAL_INCLUDES)" \
+		EXTERNAL_LIBRARIES="$(EXTERNAL_LIBRARIES)"
 
 clean:
 	rm -rf $(OBJ_DIR) $(TARGET)
 	$(MAKE) clean -C ./src/shared
 	$(MAKE) clean -C ./src/svg
+	$(MAKE) clean -C ./src/pdf
+	$(MAKE) clean -C ./src/bbox
 
 .PHONY: all clean

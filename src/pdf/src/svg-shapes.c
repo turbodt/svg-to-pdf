@@ -2,7 +2,26 @@
 #include <string.h>
 
 
+/* Distance of the control points from each arc endpoint, as a fraction
+   of the radius, so that a cubic Bezier approximates a quarter circle
+   or ellipse arc with minimal radial error. */
+#define CIRCLE_KAPPA 0.5522847498307936
+
+
 static void pdf_escape_text(PdfBuf *out, char const *s);
+static void render_points(
+    xmlNode *node,
+    PdfBuf *out,
+    RenderState const *state,
+    int close
+);
+static void render_oval(
+    PdfBuf *out,
+    RenderState const *state,
+    Point2D center,
+    double rx,
+    double ry
+);
 
 
 void render_path(xmlNode *node, PdfBuf *out, RenderState const *state) {
@@ -61,13 +80,216 @@ void render_rect(xmlNode *node, PdfBuf *out, RenderState const *state) {
     if (w <= 0 || h <= 0) {
         return;
     }
-    Point2D p[4] = {{x,y}, {x+w,y}, {x+w,y+h}, {x,y+h}};
+    double rx = attr_double(node, "rx", -1);
+    double ry = attr_double(node, "ry", -1);
+    if (rx < 0 && ry < 0) {
+        rx = 0;
+        ry = 0;
+    } else if (rx < 0) {
+        rx = ry;
+    } else if (ry < 0) {
+        ry = rx;
+    }
+    if (rx > w / 2) {
+        rx = w / 2;
+    }
+    if (ry > h / 2) {
+        ry = h / 2;
+    }
+    if (rx <= 0 || ry <= 0) {
+        Point2D p[4] = {{x,y}, {x+w,y}, {x+w,y+h}, {x,y+h}};
+        for (int i = 0; i < 4; i++) {
+            p[i] = geo_transform_apply_point(state->transform, p[i]);
+        }
+        emit_point(out, state, p[0]);
+        pdf_buf_printf(out, " m\n");
+        for (int i = 1; i < 4; i++) {
+            emit_point(out, state, p[i]);
+            pdf_buf_printf(out, " l\n");
+        }
+        pdf_buf_printf(out, "h\n");
+        emit_paint(out, state);
+        return;
+    }
+    double kx = rx * CIRCLE_KAPPA;
+    double ky = ry * CIRCLE_KAPPA;
+    Point2D p[8] = {
+        {x + rx, y},
+        {x + w - rx, y},
+        {x + w, y + ry},
+        {x + w, y + h - ry},
+        {x + w - rx, y + h},
+        {x + rx, y + h},
+        {x, y + h - ry},
+        {x, y + ry},
+    };
+    Point2D ctrl[8] = {
+        {x + w - rx + kx, y},
+        {x + w, y + ry - ky},
+        {x + w, y + h - ry + ky},
+        {x + w - rx + kx, y + h},
+        {x + rx - kx, y + h},
+        {x, y + h - ry + ky},
+        {x, y + ry - ky},
+        {x + rx - kx, y},
+    };
+    for (int i = 0; i < 8; i++) {
+        p[i] = geo_transform_apply_point(state->transform, p[i]);
+        ctrl[i] = geo_transform_apply_point(state->transform, ctrl[i]);
+    }
+    emit_point(out, state, p[0]);
+    pdf_buf_printf(out, " m\n");
     for (int i = 0; i < 4; i++) {
+        emit_point(out, state, p[2 * i + 1]);
+        pdf_buf_printf(out, " l\n");
+        emit_point(out, state, ctrl[2 * i]);
+        pdf_buf_printf(out, " ");
+        emit_point(out, state, ctrl[2 * i + 1]);
+        pdf_buf_printf(out, " ");
+        emit_point(out, state, p[(2 * i + 2) % 8]);
+        pdf_buf_printf(out, " c\n");
+    }
+    pdf_buf_printf(out, "h\n");
+    emit_paint(out, state);
+}
+
+
+void render_line(xmlNode *node, PdfBuf *out, RenderState const *state) {
+    Point2D p[2] = {
+        {attr_double(node, "x1", 0), attr_double(node, "y1", 0)},
+        {attr_double(node, "x2", 0), attr_double(node, "y2", 0)},
+    };
+    for (int i = 0; i < 2; i++) {
         p[i] = geo_transform_apply_point(state->transform, p[i]);
     }
     emit_point(out, state, p[0]); pdf_buf_printf(out, " m\n");
-    for (int i = 1; i < 4; i++) {
-        emit_point(out, state, p[i]); pdf_buf_printf(out, " l\n");
+    emit_point(out, state, p[1]); pdf_buf_printf(out, " l\n");
+    emit_paint(out, state);
+}
+
+
+void render_polyline(xmlNode *node, PdfBuf *out, RenderState const *state) {
+    render_points(node, out, state, 0);
+}
+
+
+void render_polygon(xmlNode *node, PdfBuf *out, RenderState const *state) {
+    render_points(node, out, state, 1);
+}
+
+
+static void render_points(
+    xmlNode *node,
+    PdfBuf *out,
+    RenderState const *state,
+    int close
+) {
+    char *points_str = attr_string(node, "points");
+    if (!points_str) {
+        return;
+    }
+    SVGPoints *points = svg_points_make_from_string(points_str);
+    xmlFree(points_str);
+    if (!points) {
+        return;
+    }
+    unsigned int count = svg_points_count(points);
+    if (count < 2) {
+        svg_points_destroy(points);
+        return;
+    }
+    svg_points_apply_transform(points, state->transform);
+    emit_point(out, state, svg_points_get(points, 0));
+    pdf_buf_printf(out, " m\n");
+    for (unsigned int i = 1; i < count; i++) {
+        emit_point(out, state, svg_points_get(points, i));
+        pdf_buf_printf(out, " l\n");
+    }
+    if (close) {
+        pdf_buf_printf(out, "h\n");
+    }
+    emit_paint(out, state);
+    svg_points_destroy(points);
+}
+
+
+void render_circle(xmlNode *node, PdfBuf *out, RenderState const *state) {
+    double r = attr_double(node, "r", 0);
+    if (r <= 0) {
+        return;
+    }
+    render_oval(
+        out,
+        state,
+        (Point2D){
+            .x=attr_double(node, "cx", 0),
+            .y=attr_double(node, "cy", 0),
+        },
+        r,
+        r
+    );
+}
+
+
+void render_ellipse(xmlNode *node, PdfBuf *out, RenderState const *state) {
+    double rx = attr_double(node, "rx", 0);
+    double ry = attr_double(node, "ry", 0);
+    if (rx <= 0 || ry <= 0) {
+        return;
+    }
+    render_oval(
+        out,
+        state,
+        (Point2D){
+            .x=attr_double(node, "cx", 0),
+            .y=attr_double(node, "cy", 0),
+        },
+        rx,
+        ry
+    );
+}
+
+
+static void render_oval(
+    PdfBuf *out,
+    RenderState const *state,
+    Point2D center,
+    double rx,
+    double ry
+) {
+    double kx = rx * CIRCLE_KAPPA;
+    double ky = ry * CIRCLE_KAPPA;
+    Point2D p[4] = {
+        {center.x + rx, center.y},
+        {center.x, center.y + ry},
+        {center.x - rx, center.y},
+        {center.x, center.y - ry},
+    };
+    Point2D ctrl[8] = {
+        {center.x + rx, center.y + ky},
+        {center.x + kx, center.y + ry},
+        {center.x - kx, center.y + ry},
+        {center.x - rx, center.y + ky},
+        {center.x - rx, center.y - ky},
+        {center.x - kx, center.y - ry},
+        {center.x + kx, center.y - ry},
+        {center.x + rx, center.y - ky},
+    };
+    for (int i = 0; i < 4; i++) {
+        p[i] = geo_transform_apply_point(state->transform, p[i]);
+    }
+    for (int i = 0; i < 8; i++) {
+        ctrl[i] = geo_transform_apply_point(state->transform, ctrl[i]);
+    }
+    emit_point(out, state, p[0]);
+    pdf_buf_printf(out, " m\n");
+    for (int i = 0; i < 4; i++) {
+        emit_point(out, state, ctrl[2 * i]);
+        pdf_buf_printf(out, " ");
+        emit_point(out, state, ctrl[2 * i + 1]);
+        pdf_buf_printf(out, " ");
+        emit_point(out, state, p[(i + 1) % 4]);
+        pdf_buf_printf(out, " c\n");
     }
     pdf_buf_printf(out, "h\n");
     emit_paint(out, state);
