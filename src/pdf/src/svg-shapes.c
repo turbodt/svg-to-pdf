@@ -88,6 +88,33 @@ void render_line(xmlNode *node, PdfBuf *out, RenderState const *state) {
 }
 
 
+void render_polyline(xmlNode *node, PdfBuf *out, RenderState const *state) {
+    char *points_str = attr_string(node, "points");
+    if (!points_str) {
+        return;
+    }
+    SVGPoints *points = svg_points_make_from_string(points_str);
+    xmlFree(points_str);
+    if (!points) {
+        return;
+    }
+    unsigned int count = svg_points_count(points);
+    if (count < 2) {
+        svg_points_destroy(points);
+        return;
+    }
+    svg_points_apply_transform(points, state->transform);
+    emit_point(out, state, svg_points_get(points, 0));
+    pdf_buf_printf(out, " m\n");
+    for (unsigned int i = 1; i < count; i++) {
+        emit_point(out, state, svg_points_get(points, i));
+        pdf_buf_printf(out, " l\n");
+    }
+    emit_paint(out, state);
+    svg_points_destroy(points);
+}
+
+
 void render_text(xmlNode *node, PdfBuf *out, RenderState const *state) {
     xmlChar *text = xmlNodeGetContent(node);
     if (!text || !*text || !state->fill.enabled) {

@@ -9,6 +9,7 @@ TestSuite const * test_suite_svg_get_1(void);
 TestSuite const * test_suite_svg_get_2(void);
 TestSuite const * test_suite_svg_get_3(void);
 TestSuite const * test_suite_svg_get_4(void);
+TestSuite const * test_suite_svg_get_5(void);
 
 
 #endif

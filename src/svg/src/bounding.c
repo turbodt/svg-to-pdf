@@ -56,6 +56,42 @@ Box2D svg_path_get_bbox(SVGPath const *path) {
 };
 
 
+Box2D svg_points_get_bbox(SVGPoints const *points) {
+    Box2D bbox = {0};
+    if (!points) {
+        return bbox;
+    }
+    unsigned int const count = svg_points_count(points);
+    if (count == 0) {
+        return bbox;
+    }
+
+    Point2D first = svg_points_get(points, 0);
+    double x_min = first.x, x_max = first.x;
+    double y_min = first.y, y_max = first.y;
+    for (unsigned int i = 1; i < count; i++) {
+        Point2D p = svg_points_get(points, i);
+        if (p.x < x_min) {
+            x_min = p.x;
+        }
+        if (p.x > x_max) {
+            x_max = p.x;
+        }
+        if (p.y < y_min) {
+            y_min = p.y;
+        }
+        if (p.y > y_max) {
+            y_max = p.y;
+        }
+    }
+
+    return (Box2D){
+        .tl = {.x=x_min, .y=y_min},
+        .size = {.width=x_max - x_min, .height=y_max - y_min},
+    };
+};
+
+
 Box2D svg_path_command_get_bbox(SVGPathCommand const *command) {
     switch (command->type) {
         case SVG_PATH_CMD_LINE:

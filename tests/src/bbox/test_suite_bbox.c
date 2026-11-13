@@ -171,6 +171,95 @@ static int test_009(void) {
 }
 
 
+static int test_010(void) {
+    char const *svg = "<svg width=\"100\" height=\"100\">"
+        "<polyline points=\"10,20 30,40 20,60\"/>"
+        "</svg>";
+    SvgDocument *doc = make_doc(svg);
+    ASSERT_NOT_NULL(doc, "Failed to parse SVG document");
+    BboxCollection *coll = bbox_collection_make_from_doc(doc);
+    ASSERT_NOT_NULL(coll, "Failed to make bbox collection");
+    ASSERT_EQ(bbox_collection_get_count(coll), 1, "Unexpected item count");
+    BboxItem const *item = bbox_collection_getc(coll, 0);
+    ASSERT_NOT_NULL(item, "Missing bbox item");
+    ASSERT_BOX_COORDS_EQ(item->bbox, 10, 20, 30, 60, "Unexpected bbox");
+    bbox_collection_destroy(coll);
+    bbox_svg_doc_destroy(doc);
+    return 0;
+}
+
+
+static int test_011(void) {
+    char const *svg = "<svg width=\"100\" height=\"100\">"
+        "<polyline points=\"10,20 30,20 50,20\"/>"
+        "</svg>";
+    SvgDocument *doc = make_doc(svg);
+    ASSERT_NOT_NULL(doc, "Failed to parse SVG document");
+    BboxCollection *coll = bbox_collection_make_from_doc(doc);
+    ASSERT_NOT_NULL(coll, "Failed to make bbox collection");
+    ASSERT_EQ(bbox_collection_get_count(coll), 1, "Unexpected item count");
+    BboxItem const *item = bbox_collection_getc(coll, 0);
+    ASSERT_NOT_NULL(item, "Missing bbox item");
+    ASSERT_BOX_COORDS_EQ(item->bbox, 10, 20, 50, 20, "Unexpected bbox");
+    bbox_collection_destroy(coll);
+    bbox_svg_doc_destroy(doc);
+    return 0;
+}
+
+
+static int test_012(void) {
+    char const *svg = "<svg width=\"100\" height=\"100\">"
+        "<polyline points=\"0,0 10,10\" transform=\"translate(5 5)\"/>"
+        "</svg>";
+    SvgDocument *doc = make_doc(svg);
+    ASSERT_NOT_NULL(doc, "Failed to parse SVG document");
+    BboxCollection *coll = bbox_collection_make_from_doc(doc);
+    ASSERT_NOT_NULL(coll, "Failed to make bbox collection");
+    ASSERT_EQ(bbox_collection_get_count(coll), 1, "Unexpected item count");
+    BboxItem const *item = bbox_collection_getc(coll, 0);
+    ASSERT_NOT_NULL(item, "Missing bbox item");
+    ASSERT_BOX_COORDS_EQ(item->bbox, 5, 5, 15, 15, "Unexpected bbox");
+    bbox_collection_destroy(coll);
+    bbox_svg_doc_destroy(doc);
+    return 0;
+}
+
+
+static int test_013(void) {
+    char const *svg = "<svg width=\"100\" height=\"100\">"
+        "<polyline points=\"10,20 30,40 50\"/>"
+        "</svg>";
+    SvgDocument *doc = make_doc(svg);
+    ASSERT_NOT_NULL(doc, "Failed to parse SVG document");
+    BboxCollection *coll = bbox_collection_make_from_doc(doc);
+    ASSERT_NOT_NULL(coll, "Failed to make bbox collection");
+    ASSERT_EQ(bbox_collection_get_count(coll), 1, "Unexpected item count");
+    BboxItem const *item = bbox_collection_getc(coll, 0);
+    ASSERT_NOT_NULL(item, "Missing bbox item");
+    ASSERT_BOX_COORDS_EQ(item->bbox, 10, 20, 30, 40, "Unexpected bbox");
+    bbox_collection_destroy(coll);
+    bbox_svg_doc_destroy(doc);
+    return 0;
+}
+
+
+static int test_014(void) {
+    char const *svg = "<svg width=\"100\" height=\"100\">"
+        "<polyline points=\"10 10\"/>"
+        "<polyline/>"
+        "<polyline points=\"abc\"/>"
+        "</svg>";
+    SvgDocument *doc = make_doc(svg);
+    ASSERT_NOT_NULL(doc, "Failed to parse SVG document");
+    BboxCollection *coll = bbox_collection_make_from_doc(doc);
+    ASSERT_NOT_NULL(coll, "Failed to make bbox collection");
+    ASSERT_EQ(bbox_collection_get_count(coll), 0, "Unexpected item count");
+    bbox_collection_destroy(coll);
+    bbox_svg_doc_destroy(doc);
+    return 0;
+}
+
+
 static Test tests[] = {
     {.name="Diagonal line bbox", .call=&test_001},
     {.name="Line bbox normalizes endpoints", .call=&test_002},
@@ -181,6 +270,11 @@ static Test tests[] = {
     {.name="Line bbox inherits group transform", .call=&test_007},
     {.name="Horizontal path bbox is collected", .call=&test_008},
     {.name="Multiple lines are collected", .call=&test_009},
+    {.name="Polyline bbox", .call=&test_010},
+    {.name="Horizontal polyline bbox", .call=&test_011},
+    {.name="Polyline bbox applies its transform", .call=&test_012},
+    {.name="Polyline bbox ignores a trailing odd coordinate", .call=&test_013},
+    {.name="Polylines without two points are not collected", .call=&test_014},
     {.name="", .call=NULL},
 };
 

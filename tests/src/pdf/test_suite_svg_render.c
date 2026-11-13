@@ -167,6 +167,86 @@ static int test_007(void) {
 }
 
 
+static int test_008(void) {
+    PdfPage page = {0};
+    ASSERT_ZERO(render_svg(
+        "<svg width=\"100\" height=\"100\">"
+        "<polyline points=\"10,20 30,40 50,20\""
+        " fill=\"none\" stroke=\"#000000\"/>"
+        "</svg>",
+        &page
+    ));
+    ASSERT_ZERO(assert_content(
+        &page,
+        "10.000000 80.000000 m\n"
+        "30.000000 60.000000 l\n"
+        "50.000000 80.000000 l\n"
+    ));
+    ASSERT_ZERO(assert_content(&page, "S\n"));
+    pdf_page_destroy(&page);
+    return 0;
+}
+
+
+static int test_009(void) {
+    PdfPage page = {0};
+    ASSERT_ZERO(render_svg(
+        "<svg width=\"100\" height=\"100\">"
+        "<polyline points=\"10 20, 30 40, 50\""
+        " fill=\"none\" stroke=\"#000000\"/>"
+        "</svg>",
+        &page
+    ));
+    ASSERT_ZERO(assert_content(
+        &page,
+        "10.000000 80.000000 m\n30.000000 60.000000 l\n"
+    ));
+    ASSERT(
+        strstr((char const *) page.data, "50.000000") == NULL,
+        "Expected trailing odd coordinate to be ignored"
+    );
+    pdf_page_destroy(&page);
+    return 0;
+}
+
+
+static int test_010(void) {
+    PdfPage page = {0};
+    ASSERT_ZERO(render_svg(
+        "<svg width=\"100\" height=\"100\">"
+        "<polyline points=\"0,0 10,0\" transform=\"translate(5 5)\""
+        " fill=\"none\" stroke=\"#000000\"/>"
+        "</svg>",
+        &page
+    ));
+    ASSERT_ZERO(assert_content(
+        &page,
+        "5.000000 95.000000 m\n15.000000 95.000000 l\n"
+    ));
+    pdf_page_destroy(&page);
+    return 0;
+}
+
+
+static int test_011(void) {
+    PdfPage page = {0};
+    ASSERT_ZERO(render_svg(
+        "<svg width=\"100\" height=\"100\">"
+        "<polyline points=\"10 10\" fill=\"none\" stroke=\"#000000\"/>"
+        "<polyline points=\"\" fill=\"none\" stroke=\"#000000\"/>"
+        "<polyline fill=\"none\" stroke=\"#000000\"/>"
+        "</svg>",
+        &page
+    ));
+    ASSERT(
+        strstr((char const *) page.data, " m\n") == NULL,
+        "Expected no path for polylines with less than two points"
+    );
+    pdf_page_destroy(&page);
+    return 0;
+}
+
+
 static Test tests[] = {
     {.name="Line renders its path and stroke", .call=&test_001},
     {.name="Line attributes default to zero", .call=&test_002},
@@ -175,6 +255,10 @@ static Test tests[] = {
     {.name="Line without fill nor stroke is not painted", .call=&test_005},
     {.name="Multiple lines", .call=&test_006},
     {.name="Line inherits group transform", .call=&test_007},
+    {.name="Polyline renders its path and stroke", .call=&test_008},
+    {.name="Polyline ignores a trailing odd coordinate", .call=&test_009},
+    {.name="Polyline applies its transform", .call=&test_010},
+    {.name="Polyline needs at least two points", .call=&test_011},
     {.name="", .call=NULL},
 };
 

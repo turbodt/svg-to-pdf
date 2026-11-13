@@ -139,6 +139,8 @@ static void render_node(
             render_rect(cur, out, &child);
         } else if (xmlStrEqual(cur->name, (xmlChar const *)"line")) {
             render_line(cur, out, &child);
+        } else if (xmlStrEqual(cur->name, (xmlChar const *)"polyline")) {
+            render_polyline(cur, out, &child);
         } else if (xmlStrEqual(cur->name, (xmlChar const *)"text")) {
             render_text(cur, out, &child);
         }

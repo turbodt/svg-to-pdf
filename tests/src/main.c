@@ -39,6 +39,7 @@ int main(int argc, char * argv[]) {
         test_suite_svg_get_2(),
         test_suite_svg_get_3(),
         test_suite_svg_get_4(),
+        test_suite_svg_get_5(),
         test_suite_pdf_get_1(),
         test_suite_bbox_get_1(),
         NULL

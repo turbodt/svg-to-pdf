@@ -15,6 +15,8 @@ static xmlChar const *tag_path = (xmlChar const *)"path";
 static xmlChar const *tag_d = (xmlChar const *)"d";
 static xmlChar const *tag_rect = (xmlChar const *)"rect";
 static xmlChar const *tag_line = (xmlChar const *)"line";
+static xmlChar const *tag_polyline = (xmlChar const *)"polyline";
+static xmlChar const *tag_points = (xmlChar const *)"points";
 static xmlChar const *tag_width = (xmlChar const *)"width";
 static xmlChar const *tag_height = (xmlChar const *)"height";
 static xmlChar const *tag_x = (xmlChar const *)"x";
@@ -28,6 +30,7 @@ static xmlChar const *tag_defs = (xmlChar const *)"defs";
 static Box2D xml_path_extract_bbox(xmlNode *node, Transform const *trans);
 static Box2D xml_rect_extract_bbox(xmlNode *node, Transform const *trans);
 static Box2D xml_line_extract_bbox(xmlNode *node, Transform const *trans);
+static Box2D xml_points_extract_bbox(xmlNode *node, Transform const *trans);
 static Transform * parse_transform(Transform const *curr, const char *str);
 static double min4(double, double, double, double);
 static double max4(double, double, double, double);
@@ -71,6 +74,8 @@ void xml_bbox_collection_make_from_node(
             bbox = xml_rect_extract_bbox(node_cur, trans_cur);
         } else if (xmlStrEqual(node_cur->name, tag_line)) {
             bbox = xml_line_extract_bbox(node_cur, trans_cur);
+        } else if (xmlStrEqual(node_cur->name, tag_polyline)) {
+            bbox = xml_points_extract_bbox(node_cur, trans_cur);
         }
 
         if (bbox.size.width != 0 || bbox.size.height != 0) {
@@ -209,6 +214,23 @@ Box2D xml_line_extract_bbox(xmlNode *node, Transform const *trans) {
     };
 };
 
+
+
+Box2D xml_points_extract_bbox(xmlNode *node, Transform const *trans) {
+    xmlChar *points_str = xmlGetProp(node, tag_points);
+    if (!points_str) {
+        return (Box2D){0};
+    }
+    SVGPoints *points = svg_points_make_from_string((char const *)points_str);
+    xmlFree(points_str);
+    if (!points) {
+        return (Box2D){0};
+    }
+    svg_points_apply_transform(points, trans);
+    Box2D bbox = svg_points_get_bbox(points);
+    svg_points_destroy(points);
+    return bbox;
+};
 
 
 Transform * parse_transform(Transform const *curr, const char *str) {
