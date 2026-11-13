@@ -137,6 +137,8 @@ static void render_node(
             render_path(cur, out, &child);
         } else if (xmlStrEqual(cur->name, (xmlChar const *)"rect")) {
             render_rect(cur, out, &child);
+        } else if (xmlStrEqual(cur->name, (xmlChar const *)"line")) {
+            render_line(cur, out, &child);
         } else if (xmlStrEqual(cur->name, (xmlChar const *)"text")) {
             render_text(cur, out, &child);
         }

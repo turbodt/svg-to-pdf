@@ -14,14 +14,20 @@ static xmlChar const *tag_transform = (xmlChar const *)"transform";
 static xmlChar const *tag_path = (xmlChar const *)"path";
 static xmlChar const *tag_d = (xmlChar const *)"d";
 static xmlChar const *tag_rect = (xmlChar const *)"rect";
+static xmlChar const *tag_line = (xmlChar const *)"line";
 static xmlChar const *tag_width = (xmlChar const *)"width";
 static xmlChar const *tag_height = (xmlChar const *)"height";
 static xmlChar const *tag_x = (xmlChar const *)"x";
 static xmlChar const *tag_y = (xmlChar const *)"y";
+static xmlChar const *tag_x1 = (xmlChar const *)"x1";
+static xmlChar const *tag_y1 = (xmlChar const *)"y1";
+static xmlChar const *tag_x2 = (xmlChar const *)"x2";
+static xmlChar const *tag_y2 = (xmlChar const *)"y2";
 static xmlChar const *tag_defs = (xmlChar const *)"defs";
 
 static Box2D xml_path_extract_bbox(xmlNode *node, Transform const *trans);
 static Box2D xml_rect_extract_bbox(xmlNode *node, Transform const *trans);
+static Box2D xml_line_extract_bbox(xmlNode *node, Transform const *trans);
 static Transform * parse_transform(Transform const *curr, const char *str);
 static double min4(double, double, double, double);
 static double max4(double, double, double, double);
@@ -63,9 +69,11 @@ void xml_bbox_collection_make_from_node(
             bbox = xml_path_extract_bbox(node_cur, trans_cur);
         } else if (xmlStrEqual(node_cur->name, tag_rect)) {
             bbox = xml_rect_extract_bbox(node_cur, trans_cur);
+        } else if (xmlStrEqual(node_cur->name, tag_line)) {
+            bbox = xml_line_extract_bbox(node_cur, trans_cur);
         }
 
-        if (bbox.size.width != 0 && bbox.size.height != 0) {
+        if (bbox.size.width != 0 || bbox.size.height != 0) {
             bbox_collection_append(collection, node_cur, bbox);
         }
 
@@ -157,6 +165,43 @@ Box2D xml_rect_extract_bbox(xmlNode *node, Transform const *trans) {
     double x_max = max4(tl.x, tr.x, bl.x, br.x);
     double y_min = min4(tl.y, tr.y, bl.y, br.y);
     double y_max = max4(tl.y, tr.y, bl.y, br.y);
+
+    return (Box2D) {
+        .tl = {.x=x_min, .y=y_min},
+        .size = {.width=x_max - x_min, .height=y_max - y_min},
+    };
+};
+
+
+
+Box2D xml_line_extract_bbox(xmlNode *node, Transform const *trans) {
+    if (!node || !xmlStrEqual(node->name, tag_line)) {
+        return (Box2D){0};
+    }
+
+    Point2D p[2] = {{0}};
+    xmlChar const *attr_names[2][2] = {
+        {tag_x1, tag_y1},
+        {tag_x2, tag_y2},
+    };
+    for (int i = 0; i < 2; i++) {
+        char *x_str = (char *) xmlGetProp(node, attr_names[i][0]);
+        char *y_str = (char *) xmlGetProp(node, attr_names[i][1]);
+        if (x_str) {
+            svg_double_parse(x_str, &p[i].x);
+            xmlFree(x_str);
+        }
+        if (y_str) {
+            svg_double_parse(y_str, &p[i].y);
+            xmlFree(y_str);
+        }
+        p[i] = geo_transform_apply_point(trans, p[i]);
+    }
+
+    double x_min = p[0].x < p[1].x ? p[0].x : p[1].x;
+    double x_max = p[0].x < p[1].x ? p[1].x : p[0].x;
+    double y_min = p[0].y < p[1].y ? p[0].y : p[1].y;
+    double y_max = p[0].y < p[1].y ? p[1].y : p[0].y;
 
     return (Box2D) {
         .tl = {.x=x_min, .y=y_min},

@@ -41,6 +41,8 @@ main() {
     add_dir "${MODULE_DIR}/"
     add_dir "${MODULE_DIR}/src/shared/"
     add_dir "${MODULE_DIR}/src/svg/"
+    add_dir "${MODULE_DIR}/src/pdf/"
+    add_dir "${MODULE_DIR}/src/bbox/"
 }
 
 main

@@ -74,6 +74,20 @@ void render_rect(xmlNode *node, PdfBuf *out, RenderState const *state) {
 }
 
 
+void render_line(xmlNode *node, PdfBuf *out, RenderState const *state) {
+    Point2D p[2] = {
+        {attr_double(node, "x1", 0), attr_double(node, "y1", 0)},
+        {attr_double(node, "x2", 0), attr_double(node, "y2", 0)},
+    };
+    for (int i = 0; i < 2; i++) {
+        p[i] = geo_transform_apply_point(state->transform, p[i]);
+    }
+    emit_point(out, state, p[0]); pdf_buf_printf(out, " m\n");
+    emit_point(out, state, p[1]); pdf_buf_printf(out, " l\n");
+    emit_paint(out, state);
+}
+
+
 void render_text(xmlNode *node, PdfBuf *out, RenderState const *state) {
     xmlChar *text = xmlNodeGetContent(node);
     if (!text || !*text || !state->fill.enabled) {
