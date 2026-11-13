@@ -2,6 +2,12 @@
 #include <string.h>
 
 
+/* Distance of the control points from each arc endpoint, as a fraction
+   of the radius, so that a cubic Bezier approximates a quarter circle
+   with minimal radial error. */
+#define CIRCLE_KAPPA 0.5522847498307936
+
+
 static void pdf_escape_text(PdfBuf *out, char const *s);
 static void render_points(
     xmlNode *node,
@@ -136,6 +142,51 @@ static void render_points(
     }
     emit_paint(out, state);
     svg_points_destroy(points);
+}
+
+
+void render_circle(xmlNode *node, PdfBuf *out, RenderState const *state) {
+    double cx = attr_double(node, "cx", 0);
+    double cy = attr_double(node, "cy", 0);
+    double r = attr_double(node, "r", 0);
+    if (r <= 0) {
+        return;
+    }
+    double k = r * CIRCLE_KAPPA;
+    Point2D p[4] = {
+        {cx + r, cy},
+        {cx, cy + r},
+        {cx - r, cy},
+        {cx, cy - r},
+    };
+    Point2D ctrl[8] = {
+        {cx + r, cy + k},
+        {cx + k, cy + r},
+        {cx - k, cy + r},
+        {cx - r, cy + k},
+        {cx - r, cy - k},
+        {cx - k, cy - r},
+        {cx + k, cy - r},
+        {cx + r, cy - k},
+    };
+    for (int i = 0; i < 4; i++) {
+        p[i] = geo_transform_apply_point(state->transform, p[i]);
+    }
+    for (int i = 0; i < 8; i++) {
+        ctrl[i] = geo_transform_apply_point(state->transform, ctrl[i]);
+    }
+    emit_point(out, state, p[0]);
+    pdf_buf_printf(out, " m\n");
+    for (int i = 0; i < 4; i++) {
+        emit_point(out, state, ctrl[2 * i]);
+        pdf_buf_printf(out, " ");
+        emit_point(out, state, ctrl[2 * i + 1]);
+        pdf_buf_printf(out, " ");
+        emit_point(out, state, p[(i + 1) % 4]);
+        pdf_buf_printf(out, " c\n");
+    }
+    pdf_buf_printf(out, "h\n");
+    emit_paint(out, state);
 }
 
 

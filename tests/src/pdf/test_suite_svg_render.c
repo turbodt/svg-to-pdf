@@ -328,6 +328,79 @@ static int test_015(void) {
 }
 
 
+static int count_occurrences(char const *haystack, char const *needle) {
+    int count = 0;
+    char const *p = haystack;
+    while ((p = strstr(p, needle)) != NULL) {
+        count++;
+        p += strlen(needle);
+    }
+    return count;
+}
+
+
+static int test_016(void) {
+    PdfPage page = {0};
+    ASSERT_ZERO(render_svg(
+        "<svg width=\"100\" height=\"100\">"
+        "<circle cx=\"50\" cy=\"50\" r=\"10\""
+        " fill=\"none\" stroke=\"#000000\"/>"
+        "</svg>",
+        &page
+    ));
+    ASSERT_ZERO(assert_content(&page, "60.000000 50.000000 m\n"));
+    ASSERT_ZERO(assert_content(
+        &page,
+        "60.000000 44.477153 55.522847 40.000000 50.000000 40.000000 c\n"
+    ));
+    ASSERT_EQ(
+        count_occurrences(page.data, " c\n"),
+        4,
+        "Expected four cubic curves"
+    );
+    ASSERT_ZERO(assert_content(&page, "h\n"));
+    ASSERT_ZERO(assert_content(&page, "S\n"));
+    pdf_page_destroy(&page);
+    return 0;
+}
+
+
+static int test_017(void) {
+    PdfPage page = {0};
+    ASSERT_ZERO(render_svg(
+        "<svg width=\"100\" height=\"100\">"
+        "<circle cx=\"50\" cy=\"50\" r=\"10\" transform=\"translate(5 5)\""
+        " fill=\"none\" stroke=\"#000000\"/>"
+        "</svg>",
+        &page
+    ));
+    ASSERT_ZERO(assert_content(&page, "65.000000 45.000000 m\n"));
+    pdf_page_destroy(&page);
+    return 0;
+}
+
+
+static int test_018(void) {
+    PdfPage page = {0};
+    ASSERT_ZERO(render_svg(
+        "<svg width=\"100\" height=\"100\">"
+        "<circle cx=\"50\" cy=\"50\" r=\"0\""
+        " fill=\"none\" stroke=\"#000000\"/>"
+        "<circle cx=\"50\" cy=\"50\" fill=\"none\" stroke=\"#000000\"/>"
+        "<circle cx=\"50\" cy=\"50\" r=\"-10\""
+        " fill=\"none\" stroke=\"#000000\"/>"
+        "</svg>",
+        &page
+    ));
+    ASSERT(
+        strstr((char const *) page.data, " m\n") == NULL,
+        "Expected no path for circles without a positive radius"
+    );
+    pdf_page_destroy(&page);
+    return 0;
+}
+
+
 static Test tests[] = {
     {.name="Line renders its path and stroke", .call=&test_001},
     {.name="Line attributes default to zero", .call=&test_002},
@@ -344,6 +417,9 @@ static Test tests[] = {
     {.name="Polygon ignores a trailing odd coordinate", .call=&test_013},
     {.name="Polygon applies its transform", .call=&test_014},
     {.name="Polygon needs at least two points", .call=&test_015},
+    {.name="Circle renders four cubic curves", .call=&test_016},
+    {.name="Circle applies its transform", .call=&test_017},
+    {.name="Circle needs a positive radius", .call=&test_018},
     {.name="", .call=NULL},
 };
 
